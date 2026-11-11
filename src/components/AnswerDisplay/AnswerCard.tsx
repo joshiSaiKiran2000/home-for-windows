@@ -105,7 +105,6 @@ export const AnswerCard: React.FC<AnswerCardProps> = ({ answer, onRegenerate, co
           {onRegenerate && (
             <button
               onClick={() => onRegenerate(answer.question)}
-              title="Regenerate answer"
               className="p-1.5 rounded-lg text-dark-400 hover:text-dark-100 hover:bg-dark-700 transition-colors"
             >
               <RotateCw className="w-4 h-4" />
@@ -113,7 +112,6 @@ export const AnswerCard: React.FC<AnswerCardProps> = ({ answer, onRegenerate, co
           )}
           <button
             onClick={handleCopy}
-            title="Copy answer"
             className="flex items-center gap-1 px-2 py-1 rounded-lg text-xs font-medium bg-dark-700/80 hover:bg-dark-600 text-dark-200 hover:text-white transition-colors"
           >
             {copied ? <Check className="w-3.5 h-3.5 text-emerald-400" /> : <Copy className="w-3.5 h-3.5" />}

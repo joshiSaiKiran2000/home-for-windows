@@ -40,7 +40,6 @@ export const Header: React.FC<HeaderProps> = ({
           {hasAnswers && (
             <button
               onClick={onClearHistory}
-              title="Clear answers history"
               className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium text-dark-400 hover:text-rose-400 hover:bg-dark-800 transition-colors"
             >
               <Trash2 className="w-3.5 h-3.5" />
@@ -66,7 +65,6 @@ export const Header: React.FC<HeaderProps> = ({
 
           <button
             onClick={onOpenSettings}
-            title="Settings"
             className="p-2 rounded-lg text-dark-400 hover:text-white hover:bg-dark-800 border border-transparent hover:border-dark-700 transition-colors"
           >
             <Settings className="w-4 h-4" />

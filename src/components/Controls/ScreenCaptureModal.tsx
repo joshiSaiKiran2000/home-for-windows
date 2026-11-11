@@ -79,7 +79,6 @@ export const ScreenCaptureModal: React.FC<ScreenCaptureModalProps> = ({
             <button
               onClick={fetchSources}
               disabled={isLoading}
-              title="Refresh screen list"
               className="p-1.5 rounded-lg text-dark-400 hover:text-white hover:bg-dark-700 transition-colors"
             >
               <RefreshCw className={`w-4 h-4 ${isLoading ? 'animate-spin' : ''}`} />

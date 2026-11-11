@@ -26,7 +26,6 @@ export const CodeBlock: React.FC<CodeBlockProps> = ({ code, language = 'javascri
         <button
           onClick={handleCopy}
           className="flex items-center gap-1 px-2 py-0.5 rounded text-dark-300 hover:text-white hover:bg-dark-600 transition-colors"
-          title="Copy code"
         >
           {copied ? <Check className="w-3.5 h-3.5 text-emerald-400" /> : <Copy className="w-3.5 h-3.5" />}
           <span>{copied ? 'Copied' : 'Copy'}</span>

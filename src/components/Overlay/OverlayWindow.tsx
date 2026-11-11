@@ -350,7 +350,6 @@ export const OverlayWindow: React.FC = () => {
                 Interview Copilot
               </span>
               <div
-                title="Meeting Stealth Active: Invisible on screen share (Google Meet, Teams, Zoom, Discord)"
                 className="hidden sm:flex items-center gap-1 px-1.5 py-0.5 rounded-md bg-emerald-500/15 border border-emerald-500/30 text-emerald-400 text-[10px] font-medium"
               >
                 <ShieldCheck className="w-3 h-3 text-emerald-400" />
@@ -368,7 +367,6 @@ export const OverlayWindow: React.FC = () => {
               {/* Live Audio Listening Toggle */}
               <button
                 onClick={audioState.isListening ? stopListening : startListening}
-                title={audioState.isListening ? 'Stop Listening' : 'Start Audio Listening'}
                 className={`p-1 rounded transition-colors ${audioState.isListening
                   ? 'text-rose-400 hover:text-rose-300 bg-rose-500/20'
                   : 'text-dark-400 hover:text-purple-400 hover:bg-dark-700'
@@ -387,7 +385,6 @@ export const OverlayWindow: React.FC = () => {
               {/* Screen Analysis */}
               <button
                 onClick={() => setIsScreenModalOpen(true)}
-                title="Screen Analysis"
                 className="p-1 rounded text-dark-400 hover:text-emerald-400 hover:bg-dark-700 transition-colors"
               >
                 <Monitor className="w-3.5 h-3.5" />
@@ -396,7 +393,6 @@ export const OverlayWindow: React.FC = () => {
               {/* Upload Resume PDF */}
               <button
                 onClick={handleUploadResume}
-                title="Upload Resume PDF"
                 className="p-1 rounded text-dark-400 hover:text-brand-400 hover:bg-dark-700 transition-colors"
               >
                 <FileText className="w-3.5 h-3.5" />
@@ -406,7 +402,6 @@ export const OverlayWindow: React.FC = () => {
               <div ref={opacityRef} className="relative">
                 <button
                   onClick={() => setShowOpacitySlider((prev) => !prev)}
-                  title={`Overlay Opacity (${Math.round(opacity * 100)}%)`}
                   className={`p-1 rounded transition-colors ${showOpacitySlider
                     ? 'text-brand-400 bg-dark-700'
                     : 'text-dark-400 hover:text-white hover:bg-dark-700'
@@ -452,7 +447,6 @@ export const OverlayWindow: React.FC = () => {
               {/* Settings */}
               <button
                 onClick={() => setIsSettingsOpen(true)}
-                title="Settings (API Key & Model)"
                 className="p-1 rounded text-dark-400 hover:text-white hover:bg-dark-700 transition-colors"
               >
                 <Settings className="w-3.5 h-3.5" />
@@ -461,7 +455,6 @@ export const OverlayWindow: React.FC = () => {
               {/* Compact View */}
               <button
                 onClick={toggleCompact}
-                title={isCompact ? 'Expand Window' : 'Compact Overlay'}
                 className="p-1 rounded text-dark-400 hover:text-white hover:bg-dark-700 transition-colors"
               >
                 {isCompact ? <Maximize2 className="w-3.5 h-3.5" /> : <Minimize2 className="w-3.5 h-3.5" />}
@@ -470,7 +463,6 @@ export const OverlayWindow: React.FC = () => {
               {/* Minimize */}
               <button
                 onClick={handleMinimize}
-                title="Minimize"
                 className="p-1 rounded text-dark-400 hover:text-white hover:bg-dark-700 transition-colors"
               >
                 <Minus className="w-3.5 h-3.5" />
@@ -479,7 +471,6 @@ export const OverlayWindow: React.FC = () => {
               {/* Close / Hide */}
               <button
                 onClick={() => window.electronAPI?.hideOverlay()}
-                title="Hide Overlay (Ctrl+Shift+Space to restore)"
                 className="p-1 rounded text-dark-400 hover:text-rose-400 hover:bg-dark-700 transition-colors"
               >
                 <X className="w-3.5 h-3.5" />
@@ -543,14 +534,12 @@ export const OverlayWindow: React.FC = () => {
                     <button
                       onClick={handleRegenerate}
                       disabled={isLoading}
-                      title="Regenerate answer"
                       className="p-1.5 rounded-lg text-dark-400 hover:text-white hover:bg-dark-700 transition-colors"
                     >
                       <RotateCw className={`w-3.5 h-3.5 ${isLoading ? 'animate-spin' : ''}`} />
                     </button>
                     <button
                       onClick={handleCopy}
-                      title="Copy full answer"
                       className="flex items-center gap-1 px-2 py-1 rounded-lg text-[11px] font-medium bg-dark-700 hover:bg-dark-600 text-dark-200 hover:text-white transition-colors"
                     >
                       {copied ? <Check className="w-3 h-3 text-emerald-400" /> : <Copy className="w-3 h-3" />}
