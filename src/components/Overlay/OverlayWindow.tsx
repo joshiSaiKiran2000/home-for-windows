@@ -225,11 +225,11 @@ export const OverlayWindow: React.FC = () => {
           title="Drag to reposition • Click to expand"
           className="no-drag group relative flex items-center justify-center w-12 h-12 rounded-2xl bg-dark-900/95 border border-brand-500/80 text-brand-400 hover:text-white hover:bg-brand-600 shadow-2xl backdrop-blur-xl transition-colors cursor-grab active:cursor-grabbing hover:scale-105 active:scale-95"
         >
-          <Maximize2 className="w-5 h-5 transition-transform group-hover:scale-110 pointer-events-none" />
-          <span className="absolute -top-0.5 -right-0.5 flex h-3 w-3 pointer-events-none">
-            <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75" />
-            <span className="relative inline-flex rounded-full h-3 w-3 bg-emerald-500 border border-dark-900" />
-          </span>
+            <Maximize2 className="w-5 h-5 transition-transform group-hover:scale-110 pointer-events-none" />
+            <span className="absolute -top-0.5 -right-0.5 flex h-3 w-3 pointer-events-none">
+              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75" />
+              <span className="relative inline-flex rounded-full h-3 w-3 bg-emerald-500 border border-dark-900" />
+            </span>
         </button>
       </div>
     );
@@ -317,8 +317,8 @@ export const OverlayWindow: React.FC = () => {
                   {activeAnswer.source === 'screen'
                     ? 'Screen Question'
                     : activeAnswer.source === 'audio'
-                    ? 'Spoken Question'
-                    : 'Prompt'}
+                      ? 'Spoken Question'
+                      : 'Prompt'}
                 </span>
                 <p className="text-xs font-semibold text-white leading-snug">{activeAnswer.question}</p>
               </div>
