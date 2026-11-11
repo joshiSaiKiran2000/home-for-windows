@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import {
   Sparkles,
   Minus,
@@ -120,6 +120,49 @@ export const OverlayWindow: React.FC = () => {
     window.electronAPI?.setOverlayMinimized(false);
   };
 
+  // Dragging support for floating minimized expand button
+  const isDraggingRef = useRef(false);
+  const startPosRef = useRef({ screenX: 0, screenY: 0 });
+  const hasMovedRef = useRef(false);
+
+  const handlePointerDown = (e: React.PointerEvent<HTMLButtonElement>) => {
+    if (e.button !== 0) return;
+    isDraggingRef.current = true;
+    hasMovedRef.current = false;
+    startPosRef.current = { screenX: e.screenX, screenY: e.screenY };
+    try {
+      e.currentTarget.setPointerCapture(e.pointerId);
+    } catch {
+      // ignore
+    }
+  };
+
+  const handlePointerMove = (e: React.PointerEvent<HTMLButtonElement>) => {
+    if (!isDraggingRef.current) return;
+    const dx = e.screenX - startPosRef.current.screenX;
+    const dy = e.screenY - startPosRef.current.screenY;
+
+    if (Math.abs(dx) > 1 || Math.abs(dy) > 1) {
+      hasMovedRef.current = true;
+      startPosRef.current = { screenX: e.screenX, screenY: e.screenY };
+      window.electronAPI?.moveOverlayBy(dx, dy);
+    }
+  };
+
+  const handlePointerUp = (e: React.PointerEvent<HTMLButtonElement>) => {
+    if (!isDraggingRef.current) return;
+    isDraggingRef.current = false;
+    try {
+      e.currentTarget.releasePointerCapture(e.pointerId);
+    } catch {
+      // ignore
+    }
+
+    if (!hasMovedRef.current) {
+      handleExpand();
+    }
+  };
+
   const handleScreenCapture = async (sourceId?: string) => {
     if (!window.electronAPI) return;
     setIsLoading(true);
@@ -176,12 +219,14 @@ export const OverlayWindow: React.FC = () => {
         className="drag-region w-screen h-screen flex items-center justify-center bg-transparent select-none p-1"
       >
         <button
-          onClick={handleExpand}
-          title="Expand Overlay (Click to unhide)"
-          className="no-drag group relative flex items-center justify-center w-12 h-12 rounded-2xl bg-dark-900/95 border border-brand-500/80 text-brand-400 hover:text-white hover:bg-brand-600 shadow-2xl backdrop-blur-xl transition-all hover:scale-105 active:scale-95 cursor-pointer"
+          onPointerDown={handlePointerDown}
+          onPointerMove={handlePointerMove}
+          onPointerUp={handlePointerUp}
+          title="Drag to reposition • Click to expand"
+          className="no-drag group relative flex items-center justify-center w-12 h-12 rounded-2xl bg-dark-900/95 border border-brand-500/80 text-brand-400 hover:text-white hover:bg-brand-600 shadow-2xl backdrop-blur-xl transition-colors cursor-grab active:cursor-grabbing hover:scale-105 active:scale-95"
         >
-          <Maximize2 className="w-5 h-5 transition-transform group-hover:scale-110" />
-          <span className="absolute -top-0.5 -right-0.5 flex h-3 w-3">
+          <Maximize2 className="w-5 h-5 transition-transform group-hover:scale-110 pointer-events-none" />
+          <span className="absolute -top-0.5 -right-0.5 flex h-3 w-3 pointer-events-none">
             <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75" />
             <span className="relative inline-flex rounded-full h-3 w-3 bg-emerald-500 border border-dark-900" />
           </span>

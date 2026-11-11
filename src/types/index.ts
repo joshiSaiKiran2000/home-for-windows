@@ -101,6 +101,7 @@ export interface ElectronAPI {
   setOverlayOpacity: (opacity: number) => Promise<void>;
   setOverlayCompact: (compact: boolean) => Promise<void>;
   setOverlayMinimized: (minimized: boolean) => Promise<void>;
+  moveOverlayBy: (dx: number, dy: number) => Promise<void>;
   minimizeWindow: () => Promise<void>;
   closeWindow: () => Promise<void>;
 

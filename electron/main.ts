@@ -163,31 +163,24 @@ function registerWindowIpc(): void {
         const [currentX, currentY] = overlayWindow.getPosition();
         const [currentW, currentH] = overlayWindow.getSize();
 
-        const currentDisplay = screen.getDisplayNearestPoint({ x: currentX, y: currentY });
-        const maxX = currentDisplay.workArea.x + currentDisplay.workArea.width - targetW;
-        const maxY = currentDisplay.workArea.y + currentDisplay.workArea.height - targetH;
-
-        let newX = currentX - (targetW - currentW);
-        let newY = currentY - (targetH - currentH);
-
-        if (newX < currentDisplay.workArea.x) {
-          newX = currentX;
-        }
-        if (newY < currentDisplay.workArea.y) {
-          newY = currentY;
-        }
-
-        const finalX = Math.min(Math.max(currentDisplay.workArea.x, newX), maxX);
-        const finalY = Math.min(Math.max(currentDisplay.workArea.y, newY), maxY);
+        const newX = Math.max(0, currentX - (targetW - currentW));
+        const newY = Math.max(0, currentY - (targetH - currentH));
 
         overlayWindow.setBounds({
-          x: finalX,
-          y: finalY,
+          x: newX,
+          y: newY,
           width: targetW,
           height: targetH,
         });
         broadcastToAllWindows('app:overlay-minimized-change', false);
       }
+    }
+  });
+
+  ipcMain.handle('window:move-overlay-by', (_event, dx: number, dy: number) => {
+    if (overlayWindow && !overlayWindow.isDestroyed()) {
+      const [x, y] = overlayWindow.getPosition();
+      overlayWindow.setPosition(Math.round(x + dx), Math.round(y + dy));
     }
   });
 
