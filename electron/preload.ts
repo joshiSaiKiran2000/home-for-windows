@@ -1,4 +1,4 @@
-import { contextBridge, ipcRenderer } from 'electron';
+import { contextBridge, ipcRenderer, webFrame } from 'electron';
 import {
   AnswerResponse,
   AppSettings,
@@ -8,6 +8,15 @@ import {
   ScreenSource,
   IPCResult
 } from '../src/types';
+
+// Completely disable web page zooming and lock to 100% scale
+try {
+  webFrame.setVisualZoomLevelLimits(1, 1);
+  webFrame.setZoomLevel(0);
+  webFrame.setZoomFactor(1.0);
+} catch (e) {
+  // Ignore in environments where webFrame is unavailable
+}
 
 const api = {
   // AI APIs
@@ -66,6 +75,13 @@ const api = {
     ipcRenderer.invoke('window:set-overlay-size', width, height),
   resetOverlaySize: (): Promise<void> =>
     ipcRenderer.invoke('window:reset-overlay-size'),
+  resetZoom: (): void => {
+    try {
+      webFrame.setVisualZoomLevelLimits(1, 1);
+      webFrame.setZoomLevel(0);
+      webFrame.setZoomFactor(1.0);
+    } catch {}
+  },
   minimizeWindow: (): Promise<void> => ipcRenderer.invoke('window:minimize'),
   closeWindow: (): Promise<void> => ipcRenderer.invoke('window:close'),
   setContentProtection: (enabled: boolean): Promise<void> =>
