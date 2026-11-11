@@ -163,12 +163,26 @@ function registerWindowIpc(): void {
         const [currentX, currentY] = overlayWindow.getPosition();
         const [currentW, currentH] = overlayWindow.getSize();
 
-        const newX = Math.max(0, currentX - (targetW - currentW));
-        const newY = Math.max(0, currentY - (targetH - currentH));
+        const currentDisplay = screen.getDisplayNearestPoint({ x: currentX, y: currentY });
+        const maxX = currentDisplay.workArea.x + currentDisplay.workArea.width - targetW;
+        const maxY = currentDisplay.workArea.y + currentDisplay.workArea.height - targetH;
+
+        let newX = currentX - (targetW - currentW);
+        let newY = currentY - (targetH - currentH);
+
+        if (newX < currentDisplay.workArea.x) {
+          newX = currentX;
+        }
+        if (newY < currentDisplay.workArea.y) {
+          newY = currentY;
+        }
+
+        const finalX = Math.min(Math.max(currentDisplay.workArea.x, newX), maxX);
+        const finalY = Math.min(Math.max(currentDisplay.workArea.y, newY), maxY);
 
         overlayWindow.setBounds({
-          x: newX,
-          y: newY,
+          x: finalX,
+          y: finalY,
           width: targetW,
           height: targetH,
         });
