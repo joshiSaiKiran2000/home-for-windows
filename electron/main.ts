@@ -68,8 +68,8 @@ function createOverlayWindow(): BrowserWindow {
     height: overlayHeight,
     x: posX,
     y: posY,
-    minWidth: 360,
-    minHeight: 320,
+    minWidth: 48,
+    minHeight: 48,
     frame: false,
     alwaysOnTop: true,
     skipTaskbar: false,
@@ -114,6 +114,9 @@ function toggleOverlay(): void {
   }
 }
 
+// Overlay bounds memory for minimize/expand
+let lastOverlayBounds = { width: 460, height: 600, x: 0, y: 0 };
+
 // Window control IPC handlers
 function registerWindowIpc(): void {
   ipcMain.handle('window:toggle-overlay', () => {
@@ -132,6 +135,45 @@ function registerWindowIpc(): void {
   ipcMain.handle('window:hide-overlay', () => {
     if (overlayWindow && !overlayWindow.isDestroyed()) {
       overlayWindow.hide();
+    }
+  });
+
+  ipcMain.handle('window:set-overlay-minimized', (_event, minimized: boolean) => {
+    if (overlayWindow && !overlayWindow.isDestroyed()) {
+      if (minimized) {
+        const [currentW, currentH] = overlayWindow.getSize();
+        const [currentX, currentY] = overlayWindow.getPosition();
+        lastOverlayBounds = { width: currentW, height: currentH, x: currentX, y: currentY };
+
+        const targetW = 60;
+        const targetH = 60;
+        const newX = currentX + (currentW - targetW);
+        const newY = currentY + (currentH - targetH);
+
+        overlayWindow.setBounds({
+          x: Math.max(0, newX),
+          y: Math.max(0, newY),
+          width: targetW,
+          height: targetH,
+        });
+        broadcastToAllWindows('app:overlay-minimized-change', true);
+      } else {
+        const targetW = lastOverlayBounds.width >= 360 ? lastOverlayBounds.width : 460;
+        const targetH = lastOverlayBounds.height >= 240 ? lastOverlayBounds.height : 600;
+        const [currentX, currentY] = overlayWindow.getPosition();
+        const [currentW, currentH] = overlayWindow.getSize();
+
+        const newX = Math.max(0, currentX - (targetW - currentW));
+        const newY = Math.max(0, currentY - (targetH - currentH));
+
+        overlayWindow.setBounds({
+          x: newX,
+          y: newY,
+          width: targetW,
+          height: targetH,
+        });
+        broadcastToAllWindows('app:overlay-minimized-change', false);
+      }
     }
   });
 

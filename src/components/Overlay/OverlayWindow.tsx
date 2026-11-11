@@ -24,6 +24,7 @@ export const OverlayWindow: React.FC = () => {
   const [answers, setAnswers] = useState<AnswerResponse[]>([]);
   const [currentIndex, setCurrentIndex] = useState(0);
   const [isCompact, setIsCompact] = useState(false);
+  const [isMinimized, setIsMinimized] = useState(false);
   const [opacity, setOpacity] = useState(0.96);
   const [copied, setCopied] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
@@ -44,9 +45,14 @@ export const OverlayWindow: React.FC = () => {
       setIsCompact(compact);
     });
 
+    const cleanupMinimized = window.electronAPI.onOverlayMinimizedChange?.((minimized) => {
+      setIsMinimized(minimized);
+    });
+
     return () => {
       cleanup();
       cleanupMode();
+      cleanupMinimized?.();
     };
   }, []);
 
@@ -104,6 +110,16 @@ export const OverlayWindow: React.FC = () => {
     window.electronAPI?.setOverlayCompact(next);
   };
 
+  const handleMinimize = () => {
+    setIsMinimized(true);
+    window.electronAPI?.setOverlayMinimized(true);
+  };
+
+  const handleExpand = () => {
+    setIsMinimized(false);
+    window.electronAPI?.setOverlayMinimized(false);
+  };
+
   const handleScreenCapture = async (sourceId?: string) => {
     if (!window.electronAPI) return;
     setIsLoading(true);
@@ -153,6 +169,27 @@ export const OverlayWindow: React.FC = () => {
     return parts;
   };
 
+  if (isMinimized) {
+    return (
+      <div
+        style={{ opacity }}
+        className="drag-region w-screen h-screen flex items-center justify-center bg-transparent select-none p-1"
+      >
+        <button
+          onClick={handleExpand}
+          title="Expand Overlay (Click to unhide)"
+          className="no-drag group relative flex items-center justify-center w-12 h-12 rounded-2xl bg-dark-900/95 border border-brand-500/80 text-brand-400 hover:text-white hover:bg-brand-600 shadow-2xl backdrop-blur-xl transition-all hover:scale-105 active:scale-95 cursor-pointer"
+        >
+          <Maximize2 className="w-5 h-5 transition-transform group-hover:scale-110" />
+          <span className="absolute -top-0.5 -right-0.5 flex h-3 w-3">
+            <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75" />
+            <span className="relative inline-flex rounded-full h-3 w-3 bg-emerald-500 border border-dark-900" />
+          </span>
+        </button>
+      </div>
+    );
+  }
+
   return (
     <div
       style={{ opacity }}
@@ -192,8 +229,8 @@ export const OverlayWindow: React.FC = () => {
           </button>
 
           <button
-            onClick={() => window.electronAPI?.minimizeWindow()}
-            title="Minimize"
+            onClick={handleMinimize}
+            title="Minimize to Expand Icon"
             className="p-1 rounded text-dark-400 hover:text-white hover:bg-dark-700 transition-colors"
           >
             <Minus className="w-3.5 h-3.5" />

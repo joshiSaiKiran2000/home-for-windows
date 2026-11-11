@@ -15,6 +15,16 @@ export const App: React.FC = () => {
     return () => window.removeEventListener('hashchange', handleHashChange);
   }, []);
 
+  useEffect(() => {
+    if (isOverlay) {
+      document.body.classList.remove('bg-dark-900');
+      document.body.classList.add('bg-transparent');
+    } else {
+      document.body.classList.add('bg-dark-900');
+      document.body.classList.remove('bg-transparent');
+    }
+  }, [isOverlay]);
+
   if (isOverlay) {
     return <OverlayWindow />;
   }

@@ -100,6 +100,7 @@ export interface ElectronAPI {
   hideOverlay: () => Promise<void>;
   setOverlayOpacity: (opacity: number) => Promise<void>;
   setOverlayCompact: (compact: boolean) => Promise<void>;
+  setOverlayMinimized: (minimized: boolean) => Promise<void>;
   minimizeWindow: () => Promise<void>;
   closeWindow: () => Promise<void>;
 
@@ -111,6 +112,7 @@ export interface ElectronAPI {
   onNewAnswer: (callback: (answer: AnswerResponse) => void) => () => void;
   onAudioStatusUpdate: (callback: (status: AudioCaptureState) => void) => () => void;
   onOverlayModeChange: (callback: (isCompact: boolean) => void) => () => void;
+  onOverlayMinimizedChange: (callback: (isMinimized: boolean) => void) => () => void;
 }
 
 declare global {

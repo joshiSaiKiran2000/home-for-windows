@@ -55,6 +55,8 @@ const api = {
     ipcRenderer.invoke('window:set-opacity', opacity),
   setOverlayCompact: (compact: boolean): Promise<void> =>
     ipcRenderer.invoke('window:set-compact', compact),
+  setOverlayMinimized: (minimized: boolean): Promise<void> =>
+    ipcRenderer.invoke('window:set-overlay-minimized', minimized),
   minimizeWindow: (): Promise<void> => ipcRenderer.invoke('window:minimize'),
   closeWindow: (): Promise<void> => ipcRenderer.invoke('window:close'),
 
@@ -85,6 +87,14 @@ const api = {
     ipcRenderer.on('app:overlay-mode-change', handler);
     return () => {
       ipcRenderer.removeListener('app:overlay-mode-change', handler);
+    };
+  },
+
+  onOverlayMinimizedChange: (callback: (isMinimized: boolean) => void) => {
+    const handler = (_event: any, isMinimized: boolean) => callback(isMinimized);
+    ipcRenderer.on('app:overlay-minimized-change', handler);
+    return () => {
+      ipcRenderer.removeListener('app:overlay-minimized-change', handler);
     };
   },
 };
