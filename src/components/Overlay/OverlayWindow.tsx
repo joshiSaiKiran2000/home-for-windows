@@ -14,11 +14,16 @@ import {
   Send,
   Eye,
   Sliders,
-  Code2
+  Code2,
+  Mic,
+  FileText,
+  Settings
 } from 'lucide-react';
-import { AnswerResponse } from '../../types';
+import { AnswerResponse, AppSettings } from '../../types';
 import { CodeBlock } from '../AnswerDisplay/CodeBlock';
 import { ScreenCaptureModal } from '../Controls/ScreenCaptureModal';
+import { SettingsModal } from '../Settings/SettingsModal';
+import { useAudioCapture } from '../../hooks/useAudioCapture';
 
 export const OverlayWindow: React.FC = () => {
   const [answers, setAnswers] = useState<AnswerResponse[]>([]);
@@ -30,6 +35,10 @@ export const OverlayWindow: React.FC = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [quickQuestion, setQuickQuestion] = useState('');
   const [isScreenModalOpen, setIsScreenModalOpen] = useState(false);
+  const [isSettingsOpen, setIsSettingsOpen] = useState(false);
+  const [uploadMessage, setUploadMessage] = useState<string | null>(null);
+
+  const { audioState, startListening, stopListening } = useAudioCapture();
 
   // Subscribe to new answers from main process
   useEffect(() => {
@@ -138,6 +147,33 @@ export const OverlayWindow: React.FC = () => {
   const handleExpand = () => {
     setIsMinimized(false);
     window.electronAPI?.setOverlayMinimized(false);
+  };
+
+  const handleUploadResume = async () => {
+    if (!window.electronAPI) return;
+    try {
+      setIsLoading(true);
+      const res = await window.electronAPI.uploadResumePdf();
+      if (res.success && res.data) {
+        setUploadMessage(res.data.name ? `Resume loaded: ${res.data.name}` : 'Resume parsed successfully!');
+        setTimeout(() => setUploadMessage(null), 3500);
+      } else if (res.error) {
+        setUploadMessage(`Error: ${res.error}`);
+        setTimeout(() => setUploadMessage(null), 3500);
+      }
+    } catch (err: any) {
+      console.error(err);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleSaveSettings = async (newSettings: Partial<AppSettings>) => {
+    if (!window.electronAPI) return;
+    await window.electronAPI.saveSettings(newSettings);
+    if (newSettings.opacity !== undefined) {
+      setOpacity(newSettings.opacity);
+    }
   };
 
   // Dragging support for floating minimized expand button
@@ -276,14 +312,54 @@ export const OverlayWindow: React.FC = () => {
 
         {/* Window controls */}
         <div className="no-drag flex items-center gap-1">
+          {/* Live Audio Listening Toggle */}
+          <button
+            onClick={audioState.isListening ? stopListening : startListening}
+            title={audioState.isListening ? 'Stop Listening' : 'Start Audio Listening'}
+            className={`p-1 rounded transition-colors ${
+              audioState.isListening
+                ? 'text-rose-400 hover:text-rose-300 bg-rose-500/20'
+                : 'text-dark-400 hover:text-purple-400 hover:bg-dark-700'
+            }`}
+          >
+            {audioState.isListening ? (
+              <span className="relative flex items-center justify-center">
+                <Mic className="w-3.5 h-3.5 text-rose-400 animate-pulse" />
+                <span className="absolute -top-0.5 -right-0.5 w-1.5 h-1.5 rounded-full bg-rose-400 animate-ping" />
+              </span>
+            ) : (
+              <Mic className="w-3.5 h-3.5" />
+            )}
+          </button>
+
+          {/* Screen Analysis */}
           <button
             onClick={() => setIsScreenModalOpen(true)}
-            title="Analyze Screen"
+            title="Screen Analysis"
             className="p-1 rounded text-dark-400 hover:text-emerald-400 hover:bg-dark-700 transition-colors"
           >
             <Monitor className="w-3.5 h-3.5" />
           </button>
 
+          {/* Upload Resume PDF */}
+          <button
+            onClick={handleUploadResume}
+            title="Upload Resume PDF"
+            className="p-1 rounded text-dark-400 hover:text-brand-400 hover:bg-dark-700 transition-colors"
+          >
+            <FileText className="w-3.5 h-3.5" />
+          </button>
+
+          {/* Settings */}
+          <button
+            onClick={() => setIsSettingsOpen(true)}
+            title="Settings (API Key & Model)"
+            className="p-1 rounded text-dark-400 hover:text-white hover:bg-dark-700 transition-colors"
+          >
+            <Settings className="w-3.5 h-3.5" />
+          </button>
+
+          {/* Compact View */}
           <button
             onClick={toggleCompact}
             title={isCompact ? 'Expand Window' : 'Compact Overlay'}
@@ -292,14 +368,16 @@ export const OverlayWindow: React.FC = () => {
             {isCompact ? <Maximize2 className="w-3.5 h-3.5" /> : <Minimize2 className="w-3.5 h-3.5" />}
           </button>
 
+          {/* Minimize */}
           <button
             onClick={handleMinimize}
-            title="Minimize to Expand Icon"
+            title="Minimize"
             className="p-1 rounded text-dark-400 hover:text-white hover:bg-dark-700 transition-colors"
           >
             <Minus className="w-3.5 h-3.5" />
           </button>
 
+          {/* Close / Hide */}
           <button
             onClick={() => window.electronAPI?.hideOverlay()}
             title="Hide Overlay (Ctrl+Shift+Space to restore)"
@@ -312,6 +390,19 @@ export const OverlayWindow: React.FC = () => {
 
       {/* Main Content Area */}
       <div className="flex-1 overflow-y-auto p-3.5 space-y-3 select-text">
+        {uploadMessage && (
+          <div className="p-2.5 rounded-xl bg-brand-950/50 border border-brand-800/60 text-xs text-brand-300 flex items-center gap-2">
+            <Check className="w-3.5 h-3.5 text-emerald-400" />
+            <span>{uploadMessage}</span>
+          </div>
+        )}
+
+        {audioState.isListening && (
+          <div className="p-2 rounded-xl bg-rose-950/30 border border-rose-800/40 text-xs text-rose-300 flex items-center gap-2">
+            <span className="w-2 h-2 rounded-full bg-rose-400 animate-ping" />
+            <span>Listening to meeting audio for questions...</span>
+          </div>
+        )}
         {isLoading && (
           <div className="p-3 rounded-xl bg-brand-950/30 border border-brand-800/40 flex items-center gap-2.5 text-xs text-brand-300">
             <div className="w-4 h-4 border-2 border-brand-400 border-t-transparent rounded-full animate-spin shrink-0" />
@@ -423,6 +514,13 @@ export const OverlayWindow: React.FC = () => {
         isOpen={isScreenModalOpen}
         onClose={() => setIsScreenModalOpen(false)}
         onCapture={handleScreenCapture}
+      />
+
+      {/* Settings Modal in Overlay */}
+      <SettingsModal
+        isOpen={isSettingsOpen}
+        onClose={() => setIsSettingsOpen(false)}
+        onSave={handleSaveSettings}
       />
     </div>
   );

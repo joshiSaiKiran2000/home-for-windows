@@ -291,8 +291,8 @@ app.whenReady().then(() => {
   registerAudioIpc();
   registerWindowIpc();
 
-  // Create primary dashboard window
-  createMainWindow();
+  // Directly launch the floating overlay window
+  createOverlayWindow();
 
   // Register global shortcut to toggle overlay
   const settings = storageService.getSettings();
@@ -311,7 +311,7 @@ app.whenReady().then(() => {
 
   app.on('activate', () => {
     if (BrowserWindow.getAllWindows().length === 0) {
-      createMainWindow();
+      createOverlayWindow();
     }
   });
 });
