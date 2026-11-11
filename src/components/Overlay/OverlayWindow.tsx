@@ -30,7 +30,8 @@ export const OverlayWindow: React.FC = () => {
   const [currentIndex, setCurrentIndex] = useState(0);
   const [isCompact, setIsCompact] = useState(false);
   const [isMinimized, setIsMinimized] = useState(false);
-  const [opacity, setOpacity] = useState(0.96);
+  const [opacity, setOpacity] = useState(0.95);
+  const [showOpacitySlider, setShowOpacitySlider] = useState(false);
   const [copied, setCopied] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [quickQuestion, setQuickQuestion] = useState('');
@@ -38,11 +39,34 @@ export const OverlayWindow: React.FC = () => {
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const [uploadMessage, setUploadMessage] = useState<string | null>(null);
 
+  const opacityRef = useRef<HTMLDivElement>(null);
+
   const { audioState, startListening, stopListening } = useAudioCapture();
 
-  // Subscribe to new answers from main process
+  // Close opacity popover on click outside
+  useEffect(() => {
+    const handleClickOutside = (e: MouseEvent) => {
+      if (opacityRef.current && !opacityRef.current.contains(e.target as Node)) {
+        setShowOpacitySlider(false);
+      }
+    };
+    if (showOpacitySlider) {
+      document.addEventListener('mousedown', handleClickOutside);
+    }
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, [showOpacitySlider]);
+
+  // Subscribe to new answers and settings from main process
   useEffect(() => {
     if (!window.electronAPI) return;
+
+    window.electronAPI.getSettings().then((res) => {
+      if (res.success && res.data && typeof res.data.opacity === 'number') {
+        setOpacity(res.data.opacity);
+      }
+    });
 
     const cleanup = window.electronAPI.onNewAnswer((newAns) => {
       setAnswers((prev) => [newAns, ...prev]);
@@ -58,10 +82,15 @@ export const OverlayWindow: React.FC = () => {
       setIsMinimized(minimized);
     });
 
+    const cleanupOpacity = window.electronAPI.onOverlayOpacityChange?.((newOpacity) => {
+      setOpacity(newOpacity);
+    });
+
     return () => {
       cleanup();
       cleanupMode();
       cleanupMinimized?.();
+      cleanupOpacity?.();
     };
   }, []);
 
@@ -246,7 +275,7 @@ export const OverlayWindow: React.FC = () => {
       const matchIndex = match.index;
       if (matchIndex > lastIndex) {
         parts.push(
-          <div key={`p-${lastIndex}`} className="space-y-1.5 whitespace-pre-wrap leading-relaxed">
+          <div key={`p-${lastIndex}`} className="space-y-1.5 whitespace-pre-wrap leading-relaxed text-dark-100">
             {text.substring(lastIndex, matchIndex)}
           </div>
         );
@@ -259,7 +288,7 @@ export const OverlayWindow: React.FC = () => {
 
     if (lastIndex < text.length) {
       parts.push(
-        <div key={`p-${lastIndex}`} className="space-y-1.5 whitespace-pre-wrap leading-relaxed">
+        <div key={`p-${lastIndex}`} className="space-y-1.5 whitespace-pre-wrap leading-relaxed text-dark-100">
           {text.substring(lastIndex)}
         </div>
       );
@@ -270,15 +299,15 @@ export const OverlayWindow: React.FC = () => {
 
   if (isMinimized) {
     return (
-      <div
-        style={{ opacity }}
-        className="drag-region w-screen h-screen flex items-center justify-center bg-transparent select-none p-1"
-      >
+      <div className="drag-region w-screen h-screen flex items-center justify-center bg-transparent select-none p-1">
         <button
           onPointerDown={handlePointerDown}
           onPointerMove={handlePointerMove}
           onPointerUp={handlePointerUp}
-          className="no-drag group relative flex items-center justify-center w-12 h-12 rounded-2xl bg-dark-900/95 border border-brand-500/80 text-brand-400 hover:text-white hover:bg-brand-600 shadow-2xl backdrop-blur-xl transition-colors cursor-grab active:cursor-grabbing hover:scale-105 active:scale-95"
+          style={{
+            backgroundColor: `rgba(13, 17, 23, ${Math.max(0.85, opacity)})`,
+          }}
+          className="no-drag group relative flex items-center justify-center w-12 h-12 rounded-2xl border border-brand-500/80 text-brand-400 hover:text-white hover:bg-brand-600 shadow-2xl backdrop-blur-xl transition-colors cursor-grab active:cursor-grabbing hover:scale-105 active:scale-95"
         >
           <Maximize2 className="w-5 h-5 transition-transform group-hover:scale-110 pointer-events-none" />
           <span className="absolute -top-0.5 -right-0.5 flex h-3 w-3 pointer-events-none">
@@ -292,11 +321,22 @@ export const OverlayWindow: React.FC = () => {
 
   return (
     <div
-      style={{ opacity }}
-      className="flex flex-col h-screen w-screen overflow-hidden rounded-2xl border border-dark-600 bg-dark-900/95 text-dark-100 shadow-2xl backdrop-blur-xl transition-all"
+      style={{
+        backgroundColor: `rgba(13, 17, 23, ${opacity})`,
+        borderColor: `rgba(48, 54, 61, ${Math.min(1, Math.max(0.18, opacity + 0.15))})`,
+        backdropFilter: opacity < 0.98 ? 'blur(16px)' : undefined,
+        WebkitBackdropFilter: opacity < 0.98 ? 'blur(16px)' : undefined,
+      }}
+      className="flex flex-col h-screen w-screen overflow-hidden rounded-2xl border text-dark-100 shadow-2xl transition-colors"
     >
       {/* Draggable Titlebar */}
-      <div className="drag-region flex items-center justify-between px-3.5 py-2.5 bg-dark-800/90 border-b border-dark-700/80 cursor-move select-none shrink-0">
+      <div
+        style={{
+          backgroundColor: `rgba(22, 27, 34, ${Math.min(1, Math.max(0.25, opacity + 0.1))})`,
+          borderBottomColor: `rgba(48, 54, 61, ${Math.min(1, Math.max(0.2, opacity + 0.15))})`,
+        }}
+        className="drag-region flex items-center justify-between px-3.5 py-2.5 border-b cursor-move select-none shrink-0"
+      >
         <div className="flex items-center gap-2">
           <div className="w-2.5 h-2.5 rounded-full bg-emerald-400 animate-pulse" />
           <span className="text-xs font-semibold text-white tracking-wide flex items-center gap-1.5">
@@ -348,6 +388,54 @@ export const OverlayWindow: React.FC = () => {
           >
             <FileText className="w-3.5 h-3.5" />
           </button>
+
+          {/* Opacity Quick Slider Button */}
+          <div ref={opacityRef} className="relative">
+            <button
+              onClick={() => setShowOpacitySlider((prev) => !prev)}
+              title={`Overlay Opacity (${Math.round(opacity * 100)}%)`}
+              className={`p-1 rounded transition-colors ${
+                showOpacitySlider
+                  ? 'text-brand-400 bg-dark-700'
+                  : 'text-dark-400 hover:text-white hover:bg-dark-700'
+              }`}
+            >
+              <Sliders className="w-3.5 h-3.5" />
+            </button>
+            {showOpacitySlider && (
+              <div
+                style={{
+                  backgroundColor: 'rgba(22, 27, 34, 0.98)',
+                  borderColor: 'rgba(48, 54, 61, 0.9)',
+                }}
+                className="absolute right-0 top-full mt-2 w-52 p-3 rounded-xl border shadow-2xl z-50 space-y-2 backdrop-blur-xl animate-fade-in"
+              >
+                <div className="flex items-center justify-between text-xs font-semibold text-white">
+                  <span className="flex items-center gap-1.5">
+                    <Sliders className="w-3 h-3 text-brand-400" />
+                    Overlay Opacity
+                  </span>
+                  <span className="font-mono text-brand-400">{Math.round(opacity * 100)}%</span>
+                </div>
+                <input
+                  type="range"
+                  min="0.15"
+                  max="1.0"
+                  step="0.05"
+                  value={opacity}
+                  onChange={(e) => {
+                    const val = parseFloat(e.target.value);
+                    setOpacity(val);
+                    window.electronAPI?.setOverlayOpacity(val);
+                  }}
+                  className="w-full accent-brand-500 cursor-pointer"
+                />
+                <p className="text-[10px] text-dark-400 leading-tight">
+                  Background becomes transparent while text stays 100% solid & readable.
+                </p>
+              </div>
+            )}
+          </div>
 
           {/* Settings */}
           <button
@@ -420,7 +508,13 @@ export const OverlayWindow: React.FC = () => {
         ) : activeAnswer ? (
           <div className="space-y-2.5">
             {/* Question Bar */}
-            <div className="flex items-start justify-between gap-2 p-2.5 rounded-xl bg-dark-800/80 border border-dark-700/80">
+            <div
+              style={{
+                backgroundColor: `rgba(22, 27, 34, ${Math.min(1, Math.max(0.3, opacity + 0.08))})`,
+                borderColor: `rgba(48, 54, 61, ${Math.min(1, Math.max(0.25, opacity + 0.15))})`,
+              }}
+              className="flex items-start justify-between gap-2 p-2.5 rounded-xl border"
+            >
               <div className="space-y-0.5">
                 <span className="text-[10px] font-semibold uppercase tracking-wider text-brand-400">
                   {activeAnswer.source === 'screen'
@@ -454,7 +548,7 @@ export const OverlayWindow: React.FC = () => {
             </div>
 
             {/* Answer Body */}
-            <div className="text-xs text-dark-200 leading-relaxed font-sans pr-1">
+            <div className="text-xs text-dark-100 font-medium leading-relaxed font-sans pr-1">
               {renderFormattedAnswer(activeAnswer.answer)}
             </div>
           </div>
@@ -462,7 +556,13 @@ export const OverlayWindow: React.FC = () => {
       </div>
 
       {/* Footer Navigation & Quick Input */}
-      <div className="shrink-0 p-2.5 bg-dark-800/90 border-t border-dark-700/80 space-y-2">
+      <div
+        style={{
+          backgroundColor: `rgba(22, 27, 34, ${Math.min(1, Math.max(0.25, opacity + 0.1))})`,
+          borderTopColor: `rgba(48, 54, 61, ${Math.min(1, Math.max(0.2, opacity + 0.15))})`,
+        }}
+        className="shrink-0 p-2.5 border-t space-y-2"
+      >
         {answers.length > 1 && (
           <div className="flex items-center justify-between text-[11px] text-dark-400 px-1">
             <button
@@ -495,7 +595,11 @@ export const OverlayWindow: React.FC = () => {
             onChange={(e) => setQuickQuestion(e.target.value)}
             placeholder="Discreet question (e.g. what is debounce?)..."
             disabled={isLoading}
-            className="w-full pl-3 pr-16 py-1.5 rounded-lg bg-dark-900 border border-dark-700 text-xs text-dark-200 placeholder-dark-500 focus:outline-none focus:ring-1 focus:ring-brand-500 font-sans"
+            style={{
+              backgroundColor: `rgba(13, 17, 23, ${Math.min(1, Math.max(0.35, opacity + 0.15))})`,
+              borderColor: `rgba(48, 54, 61, ${Math.min(1, Math.max(0.25, opacity + 0.2))})`,
+            }}
+            className="w-full pl-3 pr-16 py-1.5 rounded-lg border text-xs text-white placeholder-dark-400 focus:outline-none focus:ring-1 focus:ring-brand-500 font-sans"
           />
           <button
             type="submit"

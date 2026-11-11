@@ -100,6 +100,14 @@ const api = {
       ipcRenderer.removeListener('app:overlay-minimized-change', handler);
     };
   },
+
+  onOverlayOpacityChange: (callback: (opacity: number) => void) => {
+    const handler = (_event: any, opacity: number) => callback(opacity);
+    ipcRenderer.on('app:overlay-opacity-change', handler);
+    return () => {
+      ipcRenderer.removeListener('app:overlay-opacity-change', handler);
+    };
+  },
 };
 
 contextBridge.exposeInMainWorld('electronAPI', api);

@@ -88,7 +88,7 @@ function createOverlayWindow(): BrowserWindow {
     transparent: true,
     hasShadow: false,
     title: '',
-    opacity: settings.opacity ?? 0.96,
+    opacity: 1.0,
     webPreferences: {
       preload: path.join(__dirname, 'preload.js'),
       nodeIntegration: false,
@@ -222,11 +222,12 @@ function registerWindowIpc(): void {
   });
 
   ipcMain.handle('window:set-opacity', (_event, opacity: number) => {
+    const clamped = Math.max(0.1, Math.min(1.0, opacity));
+    storageService.saveSettings({ opacity: clamped });
     if (overlayWindow && !overlayWindow.isDestroyed()) {
-      const clamped = Math.max(0.3, Math.min(1.0, opacity));
-      overlayWindow.setOpacity(clamped);
-      storageService.saveSettings({ opacity: clamped });
+      overlayWindow.setOpacity(1.0);
     }
+    broadcastToAllWindows('app:overlay-opacity-change', clamped);
   });
 
   ipcMain.handle('window:set-compact', (_event, compact: boolean) => {
@@ -268,12 +269,14 @@ function registerWindowIpc(): void {
 
       // Update overlay window properties if active
       if (overlayWindow && !overlayWindow.isDestroyed()) {
-        if (updated.opacity !== undefined) {
-          overlayWindow.setOpacity(updated.opacity);
-        }
+        overlayWindow.setOpacity(1.0);
         if (updated.alwaysOnTop !== undefined) {
           overlayWindow.setAlwaysOnTop(updated.alwaysOnTop, 'screen-saver');
         }
+      }
+
+      if (partialSettings.opacity !== undefined) {
+        broadcastToAllWindows('app:overlay-opacity-change', partialSettings.opacity);
       }
 
       return { success: true, data: updated };

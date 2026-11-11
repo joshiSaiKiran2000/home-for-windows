@@ -134,13 +134,20 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
             </div>
             <input
               type="range"
-              min="0.4"
+              min="0.15"
               max="1.0"
               step="0.05"
               value={opacity}
-              onChange={(e) => setOpacity(parseFloat(e.target.value))}
+              onChange={(e) => {
+                const val = parseFloat(e.target.value);
+                setOpacity(val);
+                window.electronAPI?.setOverlayOpacity(val);
+              }}
               className="w-full accent-brand-500 cursor-pointer"
             />
+            <p className="text-[11px] text-dark-400 mt-1">
+              Changes background transparency. Text, questions, and code remain 100% solid and crisp.
+            </p>
           </div>
 
           {/* Shortcut note */}

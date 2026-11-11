@@ -115,6 +115,7 @@ export interface ElectronAPI {
   onAudioStatusUpdate: (callback: (status: AudioCaptureState) => void) => () => void;
   onOverlayModeChange: (callback: (isCompact: boolean) => void) => () => void;
   onOverlayMinimizedChange: (callback: (isMinimized: boolean) => void) => () => void;
+  onOverlayOpacityChange: (callback: (opacity: number) => void) => () => void;
 }
 
 declare global {
