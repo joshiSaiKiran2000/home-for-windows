@@ -80,7 +80,7 @@ const api = {
       webFrame.setVisualZoomLevelLimits(1, 1);
       webFrame.setZoomLevel(0);
       webFrame.setZoomFactor(1.0);
-    } catch {}
+    } catch { }
   },
   minimizeWindow: (): Promise<void> => ipcRenderer.invoke('window:minimize'),
   closeWindow: (): Promise<void> => ipcRenderer.invoke('window:close'),
