@@ -95,8 +95,11 @@ export const OverlayWindow: React.FC = () => {
     };
   }, []);
 
-  // Keyboard shortcut: Escape toggles between full overlay and minimized expand button
-  // Ctrl + Shift + Arrow keys to resize overlay smoothly without showing double-arrow cursor
+  // Keyboard shortcuts:
+  // - Escape: toggles between full overlay and minimized expand button
+  // - Ctrl + Shift + Arrows: Widen, Narrow, Increase, or Decrease Height
+  // - Ctrl + Arrows / Alt + Arrows: Widen, Narrow, Increase, or Decrease Height (when not in input)
+  // - Ctrl + / -: Grow or shrink overlay dimensions
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.key === 'Escape') {
@@ -109,28 +112,78 @@ export const OverlayWindow: React.FC = () => {
         } else {
           handleMinimize();
         }
+        return;
       }
 
-      // Ctrl + Shift + Arrow keys to adjust overlay size on the fly
-      if (e.ctrlKey && e.shiftKey && !isMinimized) {
-        if (e.key === 'ArrowRight') {
-          e.preventDefault();
-          window.electronAPI?.resizeOverlayBy(30, 0);
-        } else if (e.key === 'ArrowLeft') {
-          e.preventDefault();
-          window.electronAPI?.resizeOverlayBy(-30, 0);
-        } else if (e.key === 'ArrowDown') {
-          e.preventDefault();
-          window.electronAPI?.resizeOverlayBy(0, 30);
-        } else if (e.key === 'ArrowUp') {
-          e.preventDefault();
-          window.electronAPI?.resizeOverlayBy(0, -30);
+      if (!isMinimized) {
+        const isArrowRight = e.key === 'ArrowRight' || e.code === 'ArrowRight' || e.key === 'Right';
+        const isArrowLeft = e.key === 'ArrowLeft' || e.code === 'ArrowLeft' || e.key === 'Left';
+        const isArrowDown = e.key === 'ArrowDown' || e.code === 'ArrowDown' || e.key === 'Down';
+        const isArrowUp = e.key === 'ArrowUp' || e.code === 'ArrowUp' || e.key === 'Up';
+        const isMinus = e.key === '-' || e.key === '_' || e.code === 'Minus' || e.code === 'NumpadSubtract';
+        const isPlus = e.key === '+' || e.key === '=' || e.code === 'Equal' || e.code === 'NumpadAdd';
+
+        const isInputFocused = document.activeElement?.tagName === 'INPUT' || document.activeElement?.tagName === 'TEXTAREA';
+
+        // 1. Ctrl + Shift + Arrows (works everywhere, including inside input with preventDefault)
+        if (e.ctrlKey && e.shiftKey) {
+          if (isArrowRight) {
+            e.preventDefault();
+            window.electronAPI?.resizeOverlayBy(30, 0); // Widen
+          } else if (isArrowLeft) {
+            e.preventDefault();
+            window.electronAPI?.resizeOverlayBy(-30, 0); // Narrow
+          } else if (isArrowDown) {
+            e.preventDefault();
+            window.electronAPI?.resizeOverlayBy(0, 30); // Taller / Increase height
+          } else if (isArrowUp) {
+            e.preventDefault();
+            window.electronAPI?.resizeOverlayBy(0, -30); // Shorter / Decrease height
+          }
+        }
+        // 2. Ctrl + Arrows or Ctrl + +/- (when not focused in text input)
+        else if (e.ctrlKey && !isInputFocused) {
+          if (isArrowRight) {
+            e.preventDefault();
+            window.electronAPI?.resizeOverlayBy(30, 0); // Widen
+          } else if (isArrowLeft) {
+            e.preventDefault();
+            window.electronAPI?.resizeOverlayBy(-30, 0); // Narrow
+          } else if (isArrowDown) {
+            e.preventDefault();
+            window.electronAPI?.resizeOverlayBy(0, 30); // Increase height
+          } else if (isArrowUp) {
+            e.preventDefault();
+            window.electronAPI?.resizeOverlayBy(0, -30); // Decrease height
+          } else if (isMinus) {
+            e.preventDefault();
+            window.electronAPI?.resizeOverlayBy(-30, -30); // Shrink both
+          } else if (isPlus) {
+            e.preventDefault();
+            window.electronAPI?.resizeOverlayBy(30, 30); // Grow both
+          }
+        }
+        // 3. Alt + Arrows (alternative convenient one-hand resize)
+        else if (e.altKey && !isInputFocused) {
+          if (isArrowRight) {
+            e.preventDefault();
+            window.electronAPI?.resizeOverlayBy(30, 0);
+          } else if (isArrowLeft) {
+            e.preventDefault();
+            window.electronAPI?.resizeOverlayBy(-30, 0);
+          } else if (isArrowDown) {
+            e.preventDefault();
+            window.electronAPI?.resizeOverlayBy(0, 30);
+          } else if (isArrowUp) {
+            e.preventDefault();
+            window.electronAPI?.resizeOverlayBy(0, -30);
+          }
         }
       }
     };
 
-    window.addEventListener('keydown', handleKeyDown);
-    return () => window.removeEventListener('keydown', handleKeyDown);
+    window.addEventListener('keydown', handleKeyDown, true);
+    return () => window.removeEventListener('keydown', handleKeyDown, true);
   }, [isMinimized]);
 
   const activeAnswer = answers[currentIndex] || null;

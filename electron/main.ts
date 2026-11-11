@@ -146,8 +146,39 @@ function toggleOverlay(): void {
 // Overlay bounds memory for minimize/expand
 let lastOverlayBounds = { width: 460, height: 600, x: 0, y: 0 };
 
-  // Window control IPC handlers
-  function registerWindowIpc(): void {
+function setOverlayBoundsDirect(bounds: { x?: number; y?: number; width?: number; height?: number }): void {
+  if (!overlayWindow || overlayWindow.isDestroyed()) return;
+
+  const [currentX, currentY] = overlayWindow.getPosition();
+  const [currentW, currentH] = overlayWindow.getSize();
+
+  const finalW = bounds.width !== undefined ? Math.max(300, Math.min(1600, Math.round(bounds.width))) : currentW;
+  const finalH = bounds.height !== undefined ? Math.max(180, Math.min(1400, Math.round(bounds.height))) : currentH;
+  const finalX = bounds.x !== undefined ? Math.round(bounds.x) : currentX;
+  const finalY = bounds.y !== undefined ? Math.round(bounds.y) : currentY;
+
+  // Temporarily unlock resizable and min/max limits to allow shrinking on Windows
+  overlayWindow.setResizable(true);
+  overlayWindow.setMinimumSize(48, 48);
+  overlayWindow.setMaximumSize(4000, 4000);
+
+  overlayWindow.setBounds({
+    x: finalX,
+    y: finalY,
+    width: finalW,
+    height: finalH,
+  });
+
+  // Re-lock resizable to false so Windows never displays the double-arrow cursor
+  overlayWindow.setResizable(false);
+  overlayWindow.setContentProtection(true);
+
+  lastOverlayBounds.width = finalW;
+  lastOverlayBounds.height = finalH;
+}
+
+// Window control IPC handlers
+function registerWindowIpc(): void {
     ipcMain.handle('window:toggle-overlay', () => {
       toggleOverlay();
     });
@@ -190,17 +221,16 @@ let lastOverlayBounds = { width: 460, height: 600, x: 0, y: 0 };
           const newX = currentX + (currentW - targetW);
           const newY = currentY + (currentH - targetH);
 
-          overlayWindow.setBounds({
+          setOverlayBoundsDirect({
             x: Math.max(0, newX),
             y: Math.max(0, newY),
             width: targetW,
             height: targetH,
           });
-          overlayWindow.setContentProtection(true);
           broadcastToAllWindows('app:overlay-minimized-change', true);
         } else {
-          const targetW = lastOverlayBounds.width >= 360 ? lastOverlayBounds.width : 460;
-          const targetH = lastOverlayBounds.height >= 240 ? lastOverlayBounds.height : 600;
+          const targetW = lastOverlayBounds.width >= 300 ? lastOverlayBounds.width : 460;
+          const targetH = lastOverlayBounds.height >= 180 ? lastOverlayBounds.height : 600;
           const [currentX, currentY] = overlayWindow.getPosition();
           const [currentW, currentH] = overlayWindow.getSize();
 
@@ -221,13 +251,12 @@ let lastOverlayBounds = { width: 460, height: 600, x: 0, y: 0 };
           const finalX = Math.min(Math.max(currentDisplay.workArea.x, newX), maxX);
           const finalY = Math.min(Math.max(currentDisplay.workArea.y, newY), maxY);
 
-          overlayWindow.setBounds({
+          setOverlayBoundsDirect({
             x: finalX,
             y: finalY,
             width: targetW,
             height: targetH,
           });
-          overlayWindow.setContentProtection(true);
           broadcastToAllWindows('app:overlay-minimized-change', false);
         }
       }
@@ -252,21 +281,25 @@ let lastOverlayBounds = { width: 460, height: 600, x: 0, y: 0 };
     ipcMain.handle('window:resize-overlay-by', (_event, dw: number, dh: number) => {
       if (overlayWindow && !overlayWindow.isDestroyed()) {
         const [w, h] = overlayWindow.getSize();
-        const newW = Math.max(340, Math.min(1400, Math.round(w + dw)));
-        const newH = Math.max(220, Math.min(1200, Math.round(h + dh)));
-        overlayWindow.setSize(newW, newH);
-        lastOverlayBounds.width = newW;
-        lastOverlayBounds.height = newH;
+        const [x, y] = overlayWindow.getPosition();
+        setOverlayBoundsDirect({
+          x,
+          y,
+          width: w + dw,
+          height: h + dh,
+        });
       }
     });
 
     ipcMain.handle('window:set-overlay-size', (_event, width: number, height: number) => {
       if (overlayWindow && !overlayWindow.isDestroyed()) {
-        const clampedW = Math.max(340, Math.min(1400, Math.round(width)));
-        const clampedH = Math.max(220, Math.min(1200, Math.round(height)));
-        overlayWindow.setSize(clampedW, clampedH);
-        lastOverlayBounds.width = clampedW;
-        lastOverlayBounds.height = clampedH;
+        const [x, y] = overlayWindow.getPosition();
+        setOverlayBoundsDirect({
+          x,
+          y,
+          width,
+          height,
+        });
       }
     });
 
@@ -282,11 +315,8 @@ let lastOverlayBounds = { width: 460, height: 600, x: 0, y: 0 };
     ipcMain.handle('window:set-compact', (_event, compact: boolean) => {
       if (overlayWindow && !overlayWindow.isDestroyed()) {
         const [w] = overlayWindow.getSize();
-        if (compact) {
-          overlayWindow.setSize(w, 240);
-        } else {
-          overlayWindow.setSize(w, 600);
-        }
+        const targetH = compact ? 240 : 600;
+        setOverlayBoundsDirect({ width: w, height: targetH });
         broadcastToAllWindows('app:overlay-mode-change', compact);
       }
     });
