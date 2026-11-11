@@ -56,6 +56,26 @@ export const OverlayWindow: React.FC = () => {
     };
   }, []);
 
+  // Keyboard shortcut: Escape toggles between full overlay and minimized expand button
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        if (document.activeElement?.tagName === 'INPUT' && !isMinimized) {
+          (document.activeElement as HTMLElement).blur();
+          return;
+        }
+        if (isMinimized) {
+          handleExpand();
+        } else {
+          handleMinimize();
+        }
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [isMinimized]);
+
   const activeAnswer = answers[currentIndex] || null;
 
   const handleCopy = async () => {
