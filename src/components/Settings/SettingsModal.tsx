@@ -75,17 +75,17 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm animate-fade-in">
-      <div className="w-full max-w-lg rounded-2xl bg-dark-900 border border-dark-700 shadow-2xl overflow-hidden flex flex-col">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-3 bg-black/70 backdrop-blur-sm animate-fade-in overflow-hidden">
+      <div className="w-full max-w-lg max-h-[85vh] rounded-2xl bg-dark-900 border border-dark-700 shadow-2xl overflow-hidden flex flex-col">
         {/* Header */}
-        <div className="flex items-center justify-between px-6 py-4 border-b border-dark-700 bg-dark-800/80">
+        <div className="flex items-center justify-between px-5 py-3.5 border-b border-dark-700 bg-dark-800/80 shrink-0">
           <div className="flex items-center gap-2.5">
             <div className="p-2 rounded-lg bg-brand-500/10 text-brand-400 border border-brand-500/20">
               <Settings className="w-5 h-5" />
             </div>
             <div>
               <h3 className="text-base font-semibold text-white">Application Settings</h3>
-              <p className="text-xs text-dark-400">Configure Gemini AI credentials and overlay behavior</p>
+              <p className="text-xs text-dark-400">Configure AI credentials and overlay behavior</p>
             </div>
           </div>
           <button
@@ -96,8 +96,8 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
           </button>
         </div>
 
-        {/* Content */}
-        <div className="p-6 space-y-5">
+        {/* Scrollable Content */}
+        <div className="p-5 space-y-4 overflow-y-auto flex-1 min-h-0">
           {/* Gemini API Key */}
           <div>
             <label className="block text-xs font-semibold text-dark-200 mb-1.5 flex items-center gap-1.5">
@@ -263,7 +263,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
         </div>
 
         {/* Footer */}
-        <div className="flex items-center justify-between px-6 py-4 border-t border-dark-700 bg-dark-800/80">
+        <div className="flex items-center justify-between px-5 py-3.5 border-t border-dark-700 bg-dark-800/80 shrink-0">
           <button
             onClick={onClose}
             className="px-4 py-2 rounded-lg text-xs font-medium text-dark-300 hover:text-white hover:bg-dark-700 transition-colors"
