@@ -64,6 +64,8 @@ const api = {
     ipcRenderer.invoke('window:resize-overlay-by', dw, dh),
   setOverlaySize: (width: number, height: number): Promise<void> =>
     ipcRenderer.invoke('window:set-overlay-size', width, height),
+  resetOverlaySize: (): Promise<void> =>
+    ipcRenderer.invoke('window:reset-overlay-size'),
   minimizeWindow: (): Promise<void> => ipcRenderer.invoke('window:minimize'),
   closeWindow: (): Promise<void> => ipcRenderer.invoke('window:close'),
   setContentProtection: (enabled: boolean): Promise<void> =>

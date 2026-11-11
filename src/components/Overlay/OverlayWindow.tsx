@@ -122,6 +122,14 @@ export const OverlayWindow: React.FC = () => {
             const isArrowUp = e.key === 'ArrowUp' || e.code === 'ArrowUp' || e.key === 'Up';
             const isMinus = e.key === '-' || e.key === '_' || e.code === 'Minus' || e.code === 'NumpadSubtract';
             const isPlus = e.key === '+' || e.key === '=' || e.code === 'Equal' || e.code === 'NumpadAdd';
+            const isZero = e.key === '0' || e.code === 'Digit0' || e.code === 'Numpad0';
+
+            // Reset to default dimensions (460 x 600) on Ctrl + 0 or Ctrl + Shift + 0 or Alt + 0
+            if ((e.ctrlKey || e.altKey) && isZero) {
+              e.preventDefault();
+              window.electronAPI?.resetOverlaySize?.();
+              return;
+            }
 
             const isInputFocused = document.activeElement?.tagName === 'INPUT' || document.activeElement?.tagName === 'TEXTAREA';
 
@@ -550,9 +558,18 @@ export const OverlayWindow: React.FC = () => {
 
                 {/* Window Size Presets */}
                 <div className="pt-2 border-t border-dark-700 space-y-1.5">
-                  <span className="text-[10px] font-semibold uppercase tracking-wider text-dark-300">
-                    Window Size Presets
-                  </span>
+                  <div className="flex items-center justify-between">
+                    <span className="text-[10px] font-semibold uppercase tracking-wider text-dark-300">
+                      Window Size Presets
+                    </span>
+                    <button
+                      type="button"
+                      onClick={() => window.electronAPI?.resetOverlaySize?.()}
+                      className="text-[10px] text-brand-400 hover:text-brand-300 underline font-medium"
+                    >
+                      Reset (Ctrl+0)
+                    </button>
+                  </div>
                   <div className="grid grid-cols-2 gap-1.5">
                     <button
                       type="button"
@@ -563,10 +580,10 @@ export const OverlayWindow: React.FC = () => {
                     </button>
                     <button
                       type="button"
-                      onClick={() => window.electronAPI?.setOverlaySize(460, 600)}
-                      className="px-2 py-1 rounded-md text-[11px] font-medium bg-dark-800 hover:bg-dark-700 text-dark-200 hover:text-white border border-dark-700 transition-colors"
+                      onClick={() => window.electronAPI?.resetOverlaySize?.()}
+                      className="px-2 py-1 rounded-md text-[11px] font-medium bg-dark-800 hover:bg-dark-700 text-brand-300 hover:text-white border border-brand-500/40 transition-colors"
                     >
-                      Standard
+                      Default (460×600)
                     </button>
                     <button
                       type="button"
@@ -583,8 +600,16 @@ export const OverlayWindow: React.FC = () => {
                       Tall
                     </button>
                   </div>
+                  <button
+                    type="button"
+                    onClick={() => window.electronAPI?.resetOverlaySize?.()}
+                    className="w-full mt-1 px-2 py-1.5 rounded-md text-[11px] font-semibold bg-brand-600/25 hover:bg-brand-600/45 text-brand-300 hover:text-white border border-brand-500/35 transition-colors flex items-center justify-center gap-1.5"
+                  >
+                    <RotateCw className="w-3 h-3 text-brand-400" />
+                    Reset to Default Size (Ctrl + 0)
+                  </button>
                   <p className="text-[10px] text-dark-400 leading-tight">
-                    Drag bottom-right corner or press Ctrl+Shift+Arrows to resize freely.
+                    Shortcuts: Ctrl+0 (Reset) • Ctrl+Shift+Arrows (Resize)
                   </p>
                 </div>
               </div>

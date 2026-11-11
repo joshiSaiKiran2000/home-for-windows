@@ -152,8 +152,11 @@ function setOverlayBoundsDirect(bounds: { x?: number; y?: number; width?: number
   const [currentX, currentY] = overlayWindow.getPosition();
   const [currentW, currentH] = overlayWindow.getSize();
 
-  const finalW = bounds.width !== undefined ? Math.max(300, Math.min(1600, Math.round(bounds.width))) : currentW;
-  const finalH = bounds.height !== undefined ? Math.max(180, Math.min(1400, Math.round(bounds.height))) : currentH;
+  const minW = (bounds.width !== undefined && bounds.width < 120) ? 48 : 300;
+  const minH = (bounds.height !== undefined && bounds.height < 120) ? 48 : 180;
+
+  const finalW = bounds.width !== undefined ? Math.max(minW, Math.min(1600, Math.round(bounds.width))) : currentW;
+  const finalH = bounds.height !== undefined ? Math.max(minH, Math.min(1400, Math.round(bounds.height))) : currentH;
   const finalX = bounds.x !== undefined ? Math.round(bounds.x) : currentX;
   const finalY = bounds.y !== undefined ? Math.round(bounds.y) : currentY;
 
@@ -299,6 +302,18 @@ function registerWindowIpc(): void {
           y,
           width,
           height,
+        });
+      }
+    });
+
+    ipcMain.handle('window:reset-overlay-size', () => {
+      if (overlayWindow && !overlayWindow.isDestroyed()) {
+        const [x, y] = overlayWindow.getPosition();
+        setOverlayBoundsDirect({
+          x,
+          y,
+          width: 460,
+          height: 600,
         });
       }
     });
