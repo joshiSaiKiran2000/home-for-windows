@@ -72,9 +72,10 @@ function createOverlayWindow(): BrowserWindow {
     minHeight: 48,
     frame: false,
     alwaysOnTop: true,
-    skipTaskbar: false,
+    skipTaskbar: true,
     transparent: true,
-    hasShadow: true,
+    hasShadow: false,
+    title: '',
     opacity: settings.opacity ?? 0.96,
     webPreferences: {
       preload: path.join(__dirname, 'preload.js'),

@@ -19,6 +19,7 @@ export const App: React.FC = () => {
     if (isOverlay) {
       document.body.classList.remove('bg-dark-900');
       document.body.classList.add('bg-transparent');
+      document.title = '';
     } else {
       document.body.classList.add('bg-dark-900');
       document.body.classList.remove('bg-transparent');
