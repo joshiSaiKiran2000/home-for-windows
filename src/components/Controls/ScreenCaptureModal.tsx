@@ -114,11 +114,10 @@ export const ScreenCaptureModal: React.FC<ScreenCaptureModalProps> = ({
                   <div
                     key={src.id}
                     onClick={() => setSelectedSourceId(src.id)}
-                    className={`cursor-pointer rounded-xl border p-2.5 transition-all text-left flex flex-col gap-2 ${
-                      isSelected
+                    className={`cursor-pointer rounded-xl border p-2.5 transition-all text-left flex flex-col gap-2 ${isSelected
                         ? 'border-brand-500 bg-brand-500/10 ring-1 ring-brand-500/50'
                         : 'border-dark-700 bg-dark-800/50 hover:border-dark-600 hover:bg-dark-800'
-                    }`}
+                      }`}
                   >
                     <div className="relative aspect-video rounded-lg overflow-hidden bg-black/40 border border-dark-700/60">
                       {src.thumbnail ? (
