@@ -103,6 +103,8 @@ export interface ElectronAPI {
   setOverlayCompact: (compact: boolean) => Promise<void>;
   setOverlayMinimized: (minimized: boolean) => Promise<void>;
   moveOverlayBy: (dx: number, dy: number) => Promise<void>;
+  resizeOverlayBy: (dw: number, dh: number) => Promise<void>;
+  setOverlaySize: (width: number, height: number) => Promise<void>;
   minimizeWindow: () => Promise<void>;
   closeWindow: () => Promise<void>;
   setContentProtection: (enabled: boolean) => Promise<void>;

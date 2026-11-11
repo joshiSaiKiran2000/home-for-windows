@@ -249,6 +249,27 @@ let lastOverlayBounds = { width: 460, height: 600, x: 0, y: 0 };
       }
     });
 
+    ipcMain.handle('window:resize-overlay-by', (_event, dw: number, dh: number) => {
+      if (overlayWindow && !overlayWindow.isDestroyed()) {
+        const [w, h] = overlayWindow.getSize();
+        const newW = Math.max(340, Math.min(1400, Math.round(w + dw)));
+        const newH = Math.max(220, Math.min(1200, Math.round(h + dh)));
+        overlayWindow.setSize(newW, newH);
+        lastOverlayBounds.width = newW;
+        lastOverlayBounds.height = newH;
+      }
+    });
+
+    ipcMain.handle('window:set-overlay-size', (_event, width: number, height: number) => {
+      if (overlayWindow && !overlayWindow.isDestroyed()) {
+        const clampedW = Math.max(340, Math.min(1400, Math.round(width)));
+        const clampedH = Math.max(220, Math.min(1200, Math.round(height)));
+        overlayWindow.setSize(clampedW, clampedH);
+        lastOverlayBounds.width = clampedW;
+        lastOverlayBounds.height = clampedH;
+      }
+    });
+
     ipcMain.handle('window:set-opacity', (_event, opacity: number) => {
       const clamped = Math.max(0.1, Math.min(1.0, opacity));
       storageService.saveSettings({ opacity: clamped });

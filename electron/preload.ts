@@ -60,6 +60,10 @@ const api = {
     ipcRenderer.invoke('window:set-overlay-minimized', minimized),
   moveOverlayBy: (dx: number, dy: number): Promise<void> =>
     ipcRenderer.invoke('window:move-overlay-by', dx, dy),
+  resizeOverlayBy: (dw: number, dh: number): Promise<void> =>
+    ipcRenderer.invoke('window:resize-overlay-by', dw, dh),
+  setOverlaySize: (width: number, height: number): Promise<void> =>
+    ipcRenderer.invoke('window:set-overlay-size', width, height),
   minimizeWindow: (): Promise<void> => ipcRenderer.invoke('window:minimize'),
   closeWindow: (): Promise<void> => ipcRenderer.invoke('window:close'),
   setContentProtection: (enabled: boolean): Promise<void> =>

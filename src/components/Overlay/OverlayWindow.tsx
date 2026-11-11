@@ -96,6 +96,7 @@ export const OverlayWindow: React.FC = () => {
   }, []);
 
   // Keyboard shortcut: Escape toggles between full overlay and minimized expand button
+  // Ctrl + Shift + Arrow keys to resize overlay smoothly without showing double-arrow cursor
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.key === 'Escape') {
@@ -107,6 +108,23 @@ export const OverlayWindow: React.FC = () => {
           handleExpand();
         } else {
           handleMinimize();
+        }
+      }
+
+      // Ctrl + Shift + Arrow keys to adjust overlay size on the fly
+      if (e.ctrlKey && e.shiftKey && !isMinimized) {
+        if (e.key === 'ArrowRight') {
+          e.preventDefault();
+          window.electronAPI?.resizeOverlayBy(30, 0);
+        } else if (e.key === 'ArrowLeft') {
+          e.preventDefault();
+          window.electronAPI?.resizeOverlayBy(-30, 0);
+        } else if (e.key === 'ArrowDown') {
+          e.preventDefault();
+          window.electronAPI?.resizeOverlayBy(0, 30);
+        } else if (e.key === 'ArrowUp') {
+          e.preventDefault();
+          window.electronAPI?.resizeOverlayBy(0, -30);
         }
       }
     };
@@ -246,6 +264,42 @@ export const OverlayWindow: React.FC = () => {
 
     if (!hasMovedRef.current) {
       handleExpand();
+    }
+  };
+
+  // Stealth corner drag-to-resize support (mouse cursor stays normal arrow pointer, no double-arrow cursor)
+  const isResizingRef = useRef(false);
+  const resizeStartPosRef = useRef({ screenX: 0, screenY: 0 });
+
+  const handleResizePointerDown = (e: React.PointerEvent<HTMLDivElement>) => {
+    if (e.button !== 0) return;
+    isResizingRef.current = true;
+    resizeStartPosRef.current = { screenX: e.screenX, screenY: e.screenY };
+    try {
+      e.currentTarget.setPointerCapture(e.pointerId);
+    } catch {
+      // ignore
+    }
+  };
+
+  const handleResizePointerMove = (e: React.PointerEvent<HTMLDivElement>) => {
+    if (!isResizingRef.current) return;
+    const dw = e.screenX - resizeStartPosRef.current.screenX;
+    const dh = e.screenY - resizeStartPosRef.current.screenY;
+
+    if (Math.abs(dw) >= 1 || Math.abs(dh) >= 1) {
+      resizeStartPosRef.current = { screenX: e.screenX, screenY: e.screenY };
+      window.electronAPI?.resizeOverlayBy(dw, dh);
+    }
+  };
+
+  const handleResizePointerUp = (e: React.PointerEvent<HTMLDivElement>) => {
+    if (!isResizingRef.current) return;
+    isResizingRef.current = false;
+    try {
+      e.currentTarget.releasePointerCapture(e.pointerId);
+    } catch {
+      // ignore
     }
   };
 
@@ -440,6 +494,46 @@ export const OverlayWindow: React.FC = () => {
                 <p className="text-[10px] text-dark-400 leading-tight">
                   Background becomes transparent while text stays 100% solid & readable.
                 </p>
+
+                {/* Window Size Presets */}
+                <div className="pt-2 border-t border-dark-700 space-y-1.5">
+                  <span className="text-[10px] font-semibold uppercase tracking-wider text-dark-300">
+                    Window Size Presets
+                  </span>
+                  <div className="grid grid-cols-2 gap-1.5">
+                    <button
+                      type="button"
+                      onClick={() => window.electronAPI?.setOverlaySize(380, 420)}
+                      className="px-2 py-1 rounded-md text-[11px] font-medium bg-dark-800 hover:bg-dark-700 text-dark-200 hover:text-white border border-dark-700 transition-colors"
+                    >
+                      Compact
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => window.electronAPI?.setOverlaySize(460, 600)}
+                      className="px-2 py-1 rounded-md text-[11px] font-medium bg-dark-800 hover:bg-dark-700 text-dark-200 hover:text-white border border-dark-700 transition-colors"
+                    >
+                      Standard
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => window.electronAPI?.setOverlaySize(580, 650)}
+                      className="px-2 py-1 rounded-md text-[11px] font-medium bg-dark-800 hover:bg-dark-700 text-dark-200 hover:text-white border border-dark-700 transition-colors"
+                    >
+                      Wide
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => window.electronAPI?.setOverlaySize(460, 850)}
+                      className="px-2 py-1 rounded-md text-[11px] font-medium bg-dark-800 hover:bg-dark-700 text-dark-200 hover:text-white border border-dark-700 transition-colors"
+                    >
+                      Tall
+                    </button>
+                  </div>
+                  <p className="text-[10px] text-dark-400 leading-tight">
+                    Drag bottom-right corner or press Ctrl+Shift+Arrows to resize freely.
+                  </p>
+                </div>
               </div>
             )}
           </div>
@@ -612,6 +706,17 @@ export const OverlayWindow: React.FC = () => {
             <span>Ask</span>
           </button>
         </form>
+
+        {/* Stealth Corner Resize Grip (Mouse stays normal arrow pointer, zero double-arrow cursor!) */}
+        <div
+          onPointerDown={handleResizePointerDown}
+          onPointerMove={handleResizePointerMove}
+          onPointerUp={handleResizePointerUp}
+          style={{ cursor: 'default' }}
+          className="no-drag absolute bottom-0.5 right-0.5 w-4 h-4 flex items-end justify-end p-0.5 select-none opacity-30 hover:opacity-90 transition-opacity cursor-default z-40"
+        >
+          <div className="w-1.5 h-1.5 border-r border-b border-dark-400 rounded-br pointer-events-none" />
+        </div>
       </div>
 
       {/* Screen Selection Modal in Overlay */}
