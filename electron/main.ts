@@ -88,6 +88,7 @@ function createOverlayWindow(): BrowserWindow {
         minWidth: 48,
         minHeight: 48,
         frame: false,
+        resizable: false,
         alwaysOnTop: true,
         skipTaskbar: true,
         transparent: true,

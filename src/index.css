@@ -35,16 +35,16 @@
       background: #484f58;
     }
 
-    /* Prevent text-select I-beam mouse cursor on inputs across the application */
+    /* Prevent text-select I-beam, resize arrows, or grab cursors */
+    *,
+    *::before,
+    *::after,
     input,
-    textarea {
-      cursor: default !important;
-    }
-
-    /* Prevent hand/wrist/grab cursor on floating expand button and window controls */
+    textarea,
+    button,
     .drag-region,
-    .drag-region button,
-    button:active {
+    .no-drag {
+      resize: none !important;
       cursor: default !important;
     }
   }
