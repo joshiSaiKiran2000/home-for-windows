@@ -58,7 +58,10 @@
       "dist-electron/**/*"
     ],
     "win": {
-      "target": ["dir", "portable"],
+      "target": [
+        "dir",
+        "portable"
+      ],
       "signAndEditExecutable": false
     }
   }
