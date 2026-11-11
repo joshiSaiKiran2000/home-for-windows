@@ -93,7 +93,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
                 value={apiKey}
                 onChange={(e) => setApiKey(e.target.value)}
                 placeholder="AIzaSy..."
-                className="w-full pl-3.5 pr-10 py-2.5 rounded-xl bg-dark-800 border border-dark-700 text-xs text-white placeholder-dark-500 focus:outline-none focus:ring-1 focus:ring-brand-500 font-mono"
+                className="w-full pl-3.5 pr-10 py-2.5 rounded-xl bg-dark-800 border border-dark-700 text-xs text-white placeholder-dark-500 focus:outline-none focus:ring-1 focus:ring-brand-500 font-mono cursor-default"
               />
               <button
                 type="button"

@@ -34,6 +34,12 @@
     ::-webkit-scrollbar-thumb:hover {
       background: #484f58;
     }
+
+    /* Prevent text-select I-beam mouse cursor on inputs across the application */
+    input,
+    textarea {
+      cursor: default !important;
+    }
   }
 
   /* Draggable regions for frameless electron windows */
