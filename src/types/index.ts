@@ -105,6 +105,7 @@ export interface ElectronAPI {
   moveOverlayBy: (dx: number, dy: number) => Promise<void>;
   minimizeWindow: () => Promise<void>;
   closeWindow: () => Promise<void>;
+  setContentProtection: (enabled: boolean) => Promise<void>;
 
   // Settings APIs
   getSettings: () => Promise<IPCResult<AppSettings>>;

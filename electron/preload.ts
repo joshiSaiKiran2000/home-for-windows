@@ -62,6 +62,8 @@ const api = {
     ipcRenderer.invoke('window:move-overlay-by', dx, dy),
   minimizeWindow: (): Promise<void> => ipcRenderer.invoke('window:minimize'),
   closeWindow: (): Promise<void> => ipcRenderer.invoke('window:close'),
+  setContentProtection: (enabled: boolean): Promise<void> =>
+    ipcRenderer.invoke('window:set-content-protection', enabled),
 
   // Settings
   getSettings: (): Promise<IPCResult<AppSettings>> => ipcRenderer.invoke('settings:get'),

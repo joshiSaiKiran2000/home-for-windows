@@ -150,6 +150,22 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
             </p>
           </div>
 
+          {/* Screen Share Protection (Stealth Mode) */}
+          <div className="p-3.5 rounded-xl bg-emerald-950/20 border border-emerald-800/40 text-xs space-y-1.5">
+            <div className="font-semibold text-emerald-300 flex items-center justify-between">
+              <div className="flex items-center gap-1.5">
+                <Shield className="w-4 h-4 text-emerald-400" />
+                <span>Screen Share Protection (Stealth Mode)</span>
+              </div>
+              <span className="px-1.5 py-0.5 rounded text-[10px] font-mono bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">
+                ACTIVE
+              </span>
+            </div>
+            <p className="text-[11px] text-dark-300 leading-relaxed">
+              Native capture exclusion is active. When you share your screen in <strong>Google Meet, Zoom, Teams, Discord, or Slack</strong>, this overlay is completely invisible to the opposite person while remaining fully visible to you.
+            </p>
+          </div>
+
           {/* Shortcut note */}
           <div className="p-3.5 rounded-xl bg-dark-800/80 border border-dark-700 text-xs space-y-1">
             <div className="font-medium text-dark-200 flex items-center gap-1.5">
