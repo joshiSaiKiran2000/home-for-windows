@@ -135,11 +135,10 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
               <button
                 type="button"
                 onClick={() => setSttProvider('deepgram')}
-                className={`p-2.5 rounded-xl border text-left transition-colors ${
-                  sttProvider === 'deepgram'
+                className={`p-2.5 rounded-xl border text-left transition-colors ${sttProvider === 'deepgram'
                     ? 'bg-brand-500/15 border-brand-500/60 text-white'
                     : 'bg-dark-800 border-dark-700 text-dark-300 hover:text-white'
-                }`}
+                  }`}
               >
                 <div className="text-xs font-semibold flex items-center gap-1.5 text-brand-300">
                   <span>⚡ Deepgram Nova-2</span>
@@ -150,11 +149,10 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
               <button
                 type="button"
                 onClick={() => setSttProvider('gemini')}
-                className={`p-2.5 rounded-xl border text-left transition-colors ${
-                  sttProvider === 'gemini'
+                className={`p-2.5 rounded-xl border text-left transition-colors ${sttProvider === 'gemini'
                     ? 'bg-brand-500/15 border-brand-500/60 text-white'
                     : 'bg-dark-800 border-dark-700 text-dark-300 hover:text-white'
-                }`}
+                  }`}
               >
                 <div className="text-xs font-semibold flex items-center gap-1.5 text-brand-300">
                   <span>✨ Gemini Audio</span>
