@@ -280,11 +280,11 @@ export const OverlayWindow: React.FC = () => {
           onPointerUp={handlePointerUp}
           className="no-drag group relative flex items-center justify-center w-12 h-12 rounded-2xl bg-dark-900/95 border border-brand-500/80 text-brand-400 hover:text-white hover:bg-brand-600 shadow-2xl backdrop-blur-xl transition-colors cursor-grab active:cursor-grabbing hover:scale-105 active:scale-95"
         >
-            <Maximize2 className="w-5 h-5 transition-transform group-hover:scale-110 pointer-events-none" />
-            <span className="absolute -top-0.5 -right-0.5 flex h-3 w-3 pointer-events-none">
-              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75" />
-              <span className="relative inline-flex rounded-full h-3 w-3 bg-emerald-500 border border-dark-900" />
-            </span>
+          <Maximize2 className="w-5 h-5 transition-transform group-hover:scale-110 pointer-events-none" />
+          <span className="absolute -top-0.5 -right-0.5 flex h-3 w-3 pointer-events-none">
+            <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75" />
+            <span className="relative inline-flex rounded-full h-3 w-3 bg-emerald-500 border border-dark-900" />
+          </span>
         </button>
       </div>
     );
@@ -316,11 +316,10 @@ export const OverlayWindow: React.FC = () => {
           <button
             onClick={audioState.isListening ? stopListening : startListening}
             title={audioState.isListening ? 'Stop Listening' : 'Start Audio Listening'}
-            className={`p-1 rounded transition-colors ${
-              audioState.isListening
+            className={`p-1 rounded transition-colors ${audioState.isListening
                 ? 'text-rose-400 hover:text-rose-300 bg-rose-500/20'
                 : 'text-dark-400 hover:text-purple-400 hover:bg-dark-700'
-            }`}
+              }`}
           >
             {audioState.isListening ? (
               <span className="relative flex items-center justify-center">
