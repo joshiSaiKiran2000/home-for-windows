@@ -222,7 +222,6 @@ export const OverlayWindow: React.FC = () => {
           onPointerDown={handlePointerDown}
           onPointerMove={handlePointerMove}
           onPointerUp={handlePointerUp}
-          title="Drag to reposition • Click to expand"
           className="no-drag group relative flex items-center justify-center w-12 h-12 rounded-2xl bg-dark-900/95 border border-brand-500/80 text-brand-400 hover:text-white hover:bg-brand-600 shadow-2xl backdrop-blur-xl transition-colors cursor-grab active:cursor-grabbing hover:scale-105 active:scale-95"
         >
             <Maximize2 className="w-5 h-5 transition-transform group-hover:scale-110 pointer-events-none" />
