@@ -1,0 +1,242 @@
+import { app, BrowserWindow, globalShortcut, ipcMain, screen } from 'electron';
+import path from 'path';
+import { registerAiIpc } from './ipc/ai.ipc';
+import { registerResumeIpc } from './ipc/resume.ipc';
+import { registerScreenIpc } from './ipc/screen.ipc';
+import { registerAudioIpc } from './ipc/audio.ipc';
+import { storageService } from './services/storage.service';
+
+// Keep global references
+let mainWindow: BrowserWindow | null = null;
+let overlayWindow: BrowserWindow | null = null;
+
+const isDev = process.env.NODE_ENV !== 'production' && (!app || !app.isPackaged);
+const VITE_DEV_SERVER_URL = process.env.VITE_DEV_SERVER_URL;
+
+export function broadcastToAllWindows(channel: string, ...args: any[]): void {
+  if (mainWindow && !mainWindow.isDestroyed()) {
+    mainWindow.webContents.send(channel, ...args);
+  }
+  if (overlayWindow && !overlayWindow.isDestroyed()) {
+    overlayWindow.webContents.send(channel, ...args);
+  }
+}
+
+function createMainWindow(): BrowserWindow {
+  mainWindow = new BrowserWindow({
+    width: 1180,
+    height: 820,
+    minWidth: 900,
+    minHeight: 650,
+    title: 'AI Desktop Interview Assistant',
+    backgroundColor: '#0d1117',
+    webPreferences: {
+      preload: path.join(__dirname, 'preload.js'),
+      nodeIntegration: false,
+      contextIsolation: true,
+      sandbox: false,
+    },
+  });
+
+  if (VITE_DEV_SERVER_URL) {
+    mainWindow.loadURL(VITE_DEV_SERVER_URL);
+  } else {
+    mainWindow.loadFile(path.join(__dirname, '../dist/index.html'));
+  }
+
+  mainWindow.on('closed', () => {
+    mainWindow = null;
+  });
+
+  return mainWindow;
+}
+
+function createOverlayWindow(): BrowserWindow {
+  const display = screen.getPrimaryDisplay();
+  const { width, height } = display.workAreaSize;
+
+  const overlayWidth = 460;
+  const overlayHeight = 600;
+  // Position in bottom-right corner with a 24px margin
+  const posX = Math.max(0, width - overlayWidth - 24);
+  const posY = Math.max(0, height - overlayHeight - 32);
+
+  const settings = storageService.getSettings();
+
+  overlayWindow = new BrowserWindow({
+    width: overlayWidth,
+    height: overlayHeight,
+    x: posX,
+    y: posY,
+    minWidth: 360,
+    minHeight: 320,
+    frame: false,
+    alwaysOnTop: true,
+    skipTaskbar: false,
+    transparent: true,
+    hasShadow: true,
+    opacity: settings.opacity ?? 0.96,
+    webPreferences: {
+      preload: path.join(__dirname, 'preload.js'),
+      nodeIntegration: false,
+      contextIsolation: true,
+      sandbox: false,
+    },
+  });
+
+  // Always keep on top across all apps
+  overlayWindow.setAlwaysOnTop(true, 'screen-saver');
+
+  const overlayUrl = VITE_DEV_SERVER_URL
+    ? `${VITE_DEV_SERVER_URL}#/overlay`
+    : `file://${path.join(__dirname, '../dist/index.html')}#/overlay`;
+
+  overlayWindow.loadURL(overlayUrl);
+
+  overlayWindow.on('closed', () => {
+    overlayWindow = null;
+  });
+
+  return overlayWindow;
+}
+
+function toggleOverlay(): void {
+  if (!overlayWindow || overlayWindow.isDestroyed()) {
+    createOverlayWindow();
+    return;
+  }
+
+  if (overlayWindow.isVisible()) {
+    overlayWindow.hide();
+  } else {
+    overlayWindow.show();
+    overlayWindow.focus();
+  }
+}
+
+// Window control IPC handlers
+function registerWindowIpc(): void {
+  ipcMain.handle('window:toggle-overlay', () => {
+    toggleOverlay();
+  });
+
+  ipcMain.handle('window:show-overlay', () => {
+    if (!overlayWindow || overlayWindow.isDestroyed()) {
+      createOverlayWindow();
+    } else {
+      overlayWindow.show();
+      overlayWindow.focus();
+    }
+  });
+
+  ipcMain.handle('window:hide-overlay', () => {
+    if (overlayWindow && !overlayWindow.isDestroyed()) {
+      overlayWindow.hide();
+    }
+  });
+
+  ipcMain.handle('window:set-opacity', (_event, opacity: number) => {
+    if (overlayWindow && !overlayWindow.isDestroyed()) {
+      const clamped = Math.max(0.3, Math.min(1.0, opacity));
+      overlayWindow.setOpacity(clamped);
+      storageService.saveSettings({ opacity: clamped });
+    }
+  });
+
+  ipcMain.handle('window:set-compact', (_event, compact: boolean) => {
+    if (overlayWindow && !overlayWindow.isDestroyed()) {
+      const [w] = overlayWindow.getSize();
+      if (compact) {
+        overlayWindow.setSize(w, 240);
+      } else {
+        overlayWindow.setSize(w, 600);
+      }
+      broadcastToAllWindows('app:overlay-mode-change', compact);
+    }
+  });
+
+  ipcMain.handle('window:minimize', (event) => {
+    const win = BrowserWindow.fromWebContents(event.sender);
+    if (win) win.minimize();
+  });
+
+  ipcMain.handle('window:close', (event) => {
+    const win = BrowserWindow.fromWebContents(event.sender);
+    if (win) {
+      if (win === overlayWindow) {
+        win.hide();
+      } else {
+        win.close();
+      }
+    }
+  });
+
+  // Settings IPC
+  ipcMain.handle('settings:get', () => {
+    return { success: true, data: storageService.getSettings() };
+  });
+
+  ipcMain.handle('settings:save', (_event, partialSettings) => {
+    try {
+      const updated = storageService.saveSettings(partialSettings);
+
+      // Update overlay window properties if active
+      if (overlayWindow && !overlayWindow.isDestroyed()) {
+        if (updated.opacity !== undefined) {
+          overlayWindow.setOpacity(updated.opacity);
+        }
+        if (updated.alwaysOnTop !== undefined) {
+          overlayWindow.setAlwaysOnTop(updated.alwaysOnTop, 'screen-saver');
+        }
+      }
+
+      return { success: true, data: updated };
+    } catch (err: any) {
+      return { success: false, error: err.message };
+    }
+  });
+}
+
+app.whenReady().then(() => {
+  // Register all IPC modules
+  registerAiIpc();
+  registerResumeIpc();
+  registerScreenIpc();
+  registerAudioIpc();
+  registerWindowIpc();
+
+  // Create primary dashboard window
+  createMainWindow();
+
+  // Register global shortcut to toggle overlay
+  const settings = storageService.getSettings();
+  const shortcutKey = settings.shortcut || 'CommandOrControl+Shift+Space';
+
+  try {
+    const registered = globalShortcut.register(shortcutKey, () => {
+      toggleOverlay();
+    });
+    if (!registered) {
+      console.warn(`Failed to register global shortcut: ${shortcutKey}`);
+    }
+  } catch (err) {
+    console.warn('Error registering global shortcut:', err);
+  }
+
+  app.on('activate', () => {
+    if (BrowserWindow.getAllWindows().length === 0) {
+      createMainWindow();
+    }
+  });
+});
+
+app.on('will-quit', () => {
+  globalShortcut.unregisterAll();
+});
+
+app.on('window-all-closed', () => {
+  if (process.platform !== 'darwin') {
+    app.quit();
+  }
+});
+
