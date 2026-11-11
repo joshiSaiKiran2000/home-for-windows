@@ -38,6 +38,7 @@ export const OverlayWindow: React.FC = () => {
   const [isScreenModalOpen, setIsScreenModalOpen] = useState(false);
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const [uploadMessage, setUploadMessage] = useState<string | null>(null);
+  const [sttProvider, setSttProvider] = useState<'deepgram' | 'gemini'>('deepgram');
 
   const opacityRef = useRef<HTMLDivElement>(null);
 
@@ -88,6 +89,12 @@ export const OverlayWindow: React.FC = () => {
 
     window.electronAPI?.resetZoom?.();
     window.electronAPI?.resetOverlaySize?.();
+
+    window.electronAPI?.getSettings?.().then((res) => {
+      if (res?.success && res.data?.sttProvider) {
+        setSttProvider(res.data.sttProvider);
+      }
+    });
 
     return () => {
       cleanup();
@@ -292,11 +299,21 @@ export const OverlayWindow: React.FC = () => {
     }
   };
 
+  const handleToggleSttProvider = async (provider: 'deepgram' | 'gemini') => {
+    setSttProvider(provider);
+    if (window.electronAPI) {
+      await window.electronAPI.saveSettings({ sttProvider: provider });
+    }
+  };
+
   const handleSaveSettings = async (newSettings: Partial<AppSettings>) => {
     if (!window.electronAPI) return;
     await window.electronAPI.saveSettings(newSettings);
     if (newSettings.opacity !== undefined) {
       setOpacity(newSettings.opacity);
+    }
+    if (newSettings.sttProvider) {
+      setSttProvider(newSettings.sttProvider);
     }
   };
 
@@ -613,6 +630,38 @@ export const OverlayWindow: React.FC = () => {
                     <RotateCw className="w-3 h-3 text-brand-400" />
                     Reset to Default Size (Ctrl + 0)
                   </button>
+
+                  {/* Speech-to-Text STT Engine Option */}
+                  <div className="pt-2 border-t border-dark-700 space-y-1.5">
+                    <span className="text-[10px] font-semibold uppercase tracking-wider text-dark-300">
+                      Speech-to-Text Engine
+                    </span>
+                    <div className="grid grid-cols-2 gap-1.5">
+                      <button
+                        type="button"
+                        onClick={() => handleToggleSttProvider('deepgram')}
+                        className={`px-2 py-1 rounded-md text-[11px] font-medium border transition-colors ${
+                          sttProvider === 'deepgram'
+                            ? 'bg-brand-600/35 border-brand-500/60 text-brand-300 font-semibold'
+                            : 'bg-dark-800 border-dark-700 text-dark-300 hover:text-white'
+                        }`}
+                      >
+                        ⚡ Deepgram
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => handleToggleSttProvider('gemini')}
+                        className={`px-2 py-1 rounded-md text-[11px] font-medium border transition-colors ${
+                          sttProvider === 'gemini'
+                            ? 'bg-brand-600/35 border-brand-500/60 text-brand-300 font-semibold'
+                            : 'bg-dark-800 border-dark-700 text-dark-300 hover:text-white'
+                        }`}
+                      >
+                        ✨ Gemini
+                      </button>
+                    </div>
+                  </div>
+
                   <p className="text-[10px] text-dark-400 leading-tight">
                     Shortcuts: Ctrl+0 (Reset) • Ctrl+Shift+Arrows (Resize)
                   </p>
@@ -665,9 +714,14 @@ export const OverlayWindow: React.FC = () => {
         )}
 
         {audioState.isListening && (
-          <div className="p-2 rounded-xl bg-rose-950/30 border border-rose-800/40 text-xs text-rose-300 flex items-center gap-2">
-            <span className="w-2 h-2 rounded-full bg-rose-400 animate-ping" />
-            <span>Listening to meeting audio for questions...</span>
+          <div className="p-2 rounded-xl bg-rose-950/30 border border-rose-800/40 text-xs text-rose-300 flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <span className="w-2 h-2 rounded-full bg-rose-400 animate-ping" />
+              <span>Listening to meeting audio for questions...</span>
+            </div>
+            <span className="text-[10px] font-medium px-1.5 py-0.5 rounded bg-dark-800/90 text-dark-200 border border-dark-700">
+              {sttProvider === 'deepgram' ? '⚡ Deepgram Nova-2' : '✨ Gemini Audio'}
+            </span>
           </div>
         )}
         {isLoading && (

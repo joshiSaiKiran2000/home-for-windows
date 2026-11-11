@@ -48,6 +48,8 @@ export interface AnswerResponse {
 export interface AppSettings {
   geminiApiKey: string;
   geminiModel: string;
+  deepgramApiKey?: string;
+  sttProvider?: 'deepgram' | 'gemini';
   alwaysOnTop: boolean;
   compactMode: boolean;
   opacity: number;

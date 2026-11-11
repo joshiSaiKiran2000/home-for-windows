@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Settings, Key, Sliders, Shield, X, Check, Eye, EyeOff } from 'lucide-react';
+import { Settings, Key, Sliders, Shield, X, Check, Eye, EyeOff, Mic } from 'lucide-react';
 import { AppSettings } from '../../types';
 
 interface SettingsModalProps {
@@ -14,10 +14,13 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
   onSave,
 }) => {
   const [apiKey, setApiKey] = useState('');
-  const [model, setModel] = useState('gemini-1.5-flash');
+  const [deepgramKey, setDeepgramKey] = useState('');
+  const [sttProvider, setSttProvider] = useState<'deepgram' | 'gemini'>('deepgram');
+  const [model, setModel] = useState('gemini-2.5-flash');
   const [opacity, setOpacity] = useState(0.95);
   const [alwaysOnTop, setAlwaysOnTop] = useState(true);
   const [showKey, setShowKey] = useState(false);
+  const [showDeepgramKey, setShowDeepgramKey] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [savedSuccess, setSavedSuccess] = useState(false);
 
@@ -26,7 +29,19 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
       window.electronAPI.getSettings().then((res) => {
         if (res.success && res.data) {
           setApiKey(res.data.geminiApiKey || '');
-          setModel(res.data.geminiModel || 'gemini-1.5-flash');
+          setDeepgramKey(res.data.deepgramApiKey || '');
+          setSttProvider(res.data.sttProvider || 'deepgram');
+          const loadedModel = res.data.geminiModel;
+          if (
+            !loadedModel ||
+            loadedModel === 'gemini-1.5-flash' ||
+            loadedModel === 'gemini-2.0-flash' ||
+            loadedModel === 'gemini-1.5-pro'
+          ) {
+            setModel('gemini-2.5-flash');
+          } else {
+            setModel(loadedModel);
+          }
           setOpacity(res.data.opacity ?? 0.95);
           setAlwaysOnTop(res.data.alwaysOnTop ?? true);
         }
@@ -42,6 +57,8 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
       await onSave({
         geminiApiKey: apiKey.trim(),
         geminiModel: model,
+        deepgramApiKey: deepgramKey.trim(),
+        sttProvider,
         opacity,
         alwaysOnTop,
       });
@@ -104,7 +121,76 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
               </button>
             </div>
             <p className="text-[11px] text-dark-400 mt-1">
-              Your key is stored securely on your local device only and is used directly to communicate with Gemini.
+              Your key is stored securely on your local device only.
+            </p>
+          </div>
+
+          {/* Speech-to-Text Provider (Deepgram / Gemini) */}
+          <div>
+            <label className="block text-xs font-semibold text-dark-200 mb-1.5 flex items-center gap-1.5">
+              <Mic className="w-3.5 h-3.5 text-brand-400" />
+              <span>Speech-to-Text (STT) Engine</span>
+            </label>
+            <div className="grid grid-cols-2 gap-2">
+              <button
+                type="button"
+                onClick={() => setSttProvider('deepgram')}
+                className={`p-2.5 rounded-xl border text-left transition-colors ${
+                  sttProvider === 'deepgram'
+                    ? 'bg-brand-500/15 border-brand-500/60 text-white'
+                    : 'bg-dark-800 border-dark-700 text-dark-300 hover:text-white'
+                }`}
+              >
+                <div className="text-xs font-semibold flex items-center gap-1.5 text-brand-300">
+                  <span>⚡ Deepgram Nova-2</span>
+                </div>
+                <p className="text-[10px] text-dark-400 mt-0.5">Ultra-fast sub-second transcription (Recommended)</p>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => setSttProvider('gemini')}
+                className={`p-2.5 rounded-xl border text-left transition-colors ${
+                  sttProvider === 'gemini'
+                    ? 'bg-brand-500/15 border-brand-500/60 text-white'
+                    : 'bg-dark-800 border-dark-700 text-dark-300 hover:text-white'
+                }`}
+              >
+                <div className="text-xs font-semibold flex items-center gap-1.5 text-brand-300">
+                  <span>✨ Gemini Audio</span>
+                </div>
+                <p className="text-[10px] text-dark-400 mt-0.5">Multimodal direct audio chunk analysis</p>
+              </button>
+            </div>
+          </div>
+
+          {/* Deepgram API Key */}
+          <div>
+            <label className="block text-xs font-semibold text-dark-200 mb-1.5 flex items-center justify-between">
+              <span className="flex items-center gap-1.5">
+                <Key className="w-3.5 h-3.5 text-brand-400" />
+                <span>Deepgram API Key</span>
+              </span>
+              <span className="text-[10px] text-dark-400">console.deepgram.com</span>
+            </label>
+            <div className="relative flex items-center">
+              <input
+                type={showDeepgramKey ? 'text' : 'password'}
+                value={deepgramKey}
+                onChange={(e) => setDeepgramKey(e.target.value)}
+                placeholder="Enter Deepgram API Key..."
+                className="w-full pl-3.5 pr-10 py-2.5 rounded-xl bg-dark-800 border border-dark-700 text-xs text-white placeholder-dark-500 focus:outline-none focus:ring-1 focus:ring-brand-500 font-mono cursor-default"
+              />
+              <button
+                type="button"
+                onClick={() => setShowDeepgramKey(!showDeepgramKey)}
+                className="absolute right-3 text-dark-400 hover:text-dark-200"
+              >
+                {showDeepgramKey ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+              </button>
+            </div>
+            <p className="text-[11px] text-dark-400 mt-1">
+              Used for instantaneous speech-to-text with Deepgram Nova-2 during live meetings.
             </p>
           </div>
 
@@ -119,10 +205,10 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
               onChange={(e) => setModel(e.target.value)}
               className="w-full px-3.5 py-2.5 rounded-xl bg-dark-800 border border-dark-700 text-xs text-white focus:outline-none focus:ring-1 focus:ring-brand-500"
             >
-              <option value="gemini-1.5-flash">Gemini 1.5 Flash (Fast, Recommended for live interview)</option>
-              <option value="gemini-2.0-flash">Gemini 2.0 Flash (Next-gen speed & reasoning)</option>
-              <option value="gemini-2.5-flash">Gemini 2.5 Flash (High speed vision & reasoning)</option>
-              <option value="gemini-1.5-pro">Gemini 1.5 Pro (Deep complex problem solving)</option>
+              <option value="gemini-2.5-flash">Gemini 2.5 Flash (Fast, Recommended for live interview)</option>
+              <option value="gemini-3.8-flash">Gemini 3.8 Flash (Latest speed & reasoning)</option>
+              <option value="gemini-3.5-flash">Gemini 3.5 Flash (High speed & intelligence)</option>
+              <option value="gemini-2.5-pro">Gemini 2.5 Pro (Deep complex problem solving)</option>
             </select>
           </div>
 

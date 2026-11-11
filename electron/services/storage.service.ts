@@ -84,7 +84,9 @@ export class StorageService {
   getSettings(): AppSettings {
     const defaultSettings: AppSettings = {
       geminiApiKey: process.env.GEMINI_API_KEY || '',
-      geminiModel: 'gemini-1.5-flash',
+      geminiModel: 'gemini-2.5-flash',
+      deepgramApiKey: process.env.DEEPGRAM_API_KEY || '',
+      sttProvider: 'deepgram',
       alwaysOnTop: true,
       compactMode: false,
       opacity: 0.95,
@@ -95,7 +97,17 @@ export class StorageService {
       if (fs.existsSync(this.settingsFile)) {
         const raw = fs.readFileSync(this.settingsFile, 'utf-8');
         const parsed = JSON.parse(raw);
-        return { ...defaultSettings, ...parsed };
+        const settings: AppSettings = { ...defaultSettings, ...parsed };
+        // Automatically migrate deprecated model names to current active stable model
+        if (
+          !settings.geminiModel ||
+          settings.geminiModel === 'gemini-1.5-flash' ||
+          settings.geminiModel === 'gemini-2.0-flash' ||
+          settings.geminiModel === 'gemini-1.5-pro'
+        ) {
+          settings.geminiModel = 'gemini-2.5-flash';
+        }
+        return settings;
       }
     } catch (err) {
       console.error('Error reading settings.json:', err);

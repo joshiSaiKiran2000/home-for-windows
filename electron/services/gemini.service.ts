@@ -58,7 +58,16 @@ export class GeminiService {
 
   private getModelName(): string {
     const settings = storageService.getSettings();
-    return settings.geminiModel || 'gemini-1.5-flash';
+    const model = settings.geminiModel;
+    if (
+      !model ||
+      model === 'gemini-1.5-flash' ||
+      model === 'gemini-2.0-flash' ||
+      model === 'gemini-1.5-pro'
+    ) {
+      return 'gemini-2.5-flash';
+    }
+    return model;
   }
 
   /**
@@ -340,6 +349,63 @@ Return JSON in this exact structure:
     return {
       detectedQuestion: parsed.transcription ? `(Transcribed: "${parsed.transcription}")` : undefined,
     };
+  }
+
+  /**
+   * Evaluates text transcribed by Deepgram to detect if an interviewer asked a question directed at candidate.
+   * If yes, generates a live personalized answer.
+   */
+  async evaluateTranscribedQuestion(
+    transcript: string
+  ): Promise<{ detectedQuestion?: string; answer?: AnswerResponse }> {
+    if (!transcript || transcript.trim().length < 5) {
+      return {};
+    }
+
+    const ai = this.getClient();
+    const model = ai.getGenerativeModel({
+      model: this.getModelName(),
+    });
+
+    const prompt = `You are an AI assistant for a candidate during a live job interview or technical meeting.
+Here is speech transcribed from the meeting:
+"${transcript}"
+
+Task 1: Determine if an interviewer is asking an interview question, coding challenge, technical question, or behavioural prompt directed at the candidate.
+Task 2: If YES, extract and clean up the exact question being asked.
+Task 3: If NO (e.g. casual small talk, greeting, background noise, or candidate answering), set isQuestion to false.
+
+Return JSON in this exact structure:
+{
+  "isQuestion": true or false,
+  "detectedQuestion": "The clean question if isQuestion is true, otherwise empty string"
+}`;
+
+    try {
+      const result = await model.generateContent(prompt);
+      const text = result.response.text().trim();
+      const cleaned = text.replace(/^```json\n?/, '').replace(/\n?```$/, '');
+      const parsed = JSON.parse(cleaned);
+
+      if (parsed.isQuestion && parsed.detectedQuestion && parsed.detectedQuestion.length > 5) {
+        const answer = await this.generateInterviewAnswer({
+          question: parsed.detectedQuestion,
+          source: 'audio',
+        });
+        return {
+          detectedQuestion: parsed.detectedQuestion,
+          answer,
+        };
+      }
+
+      return {
+        detectedQuestion: `(Deepgram: "${transcript}")`,
+      };
+    } catch {
+      return {
+        detectedQuestion: `(Deepgram: "${transcript}")`,
+      };
+    }
   }
 }
 
