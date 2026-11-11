@@ -595,29 +595,29 @@ export const OverlayWindow: React.FC = () => {
         )}
 
         {/* Quick Question Form */}
-        <form onSubmit={handleQuickAsk} className="relative flex items-center cursor-default">
-          <input
-            type="text"
-            value={quickQuestion}
-            onChange={(e) => setQuickQuestion(e.target.value)}
-            placeholder="Discreet question (e.g. what is debounce?)..."
-            disabled={isLoading}
-            style={{
-              backgroundColor: `rgba(13, 17, 23, ${Math.min(1, Math.max(0.35, opacity + 0.15))})`,
-              borderColor: `rgba(48, 54, 61, ${Math.min(1, Math.max(0.25, opacity + 0.2))})`,
-              cursor: 'default',
-            }}
-            className="w-full pl-3 pr-16 py-1.5 rounded-lg border text-xs text-white placeholder-dark-400 focus:outline-none focus:ring-1 focus:ring-brand-500 font-sans cursor-default caret-brand-400"
-          />
-          <button
-            type="submit"
-            disabled={isLoading || !quickQuestion.trim()}
-            className="absolute right-1 px-2.5 py-1 rounded-md text-[11px] font-medium bg-brand-600 hover:bg-brand-500 disabled:opacity-40 text-white transition-all flex items-center gap-1 cursor-default"
-          >
-            <Send className="w-3 h-3" />
-            <span>Ask</span>
-          </button>
-        </form>
+          <form onSubmit={handleQuickAsk} className="relative flex items-center cursor-default">
+            <input
+              type="text"
+              value={quickQuestion}
+              onChange={(e) => setQuickQuestion(e.target.value)}
+              placeholder="Discreet question (e.g. what is debounce?)..."
+              disabled={isLoading}
+              style={{
+                backgroundColor: `rgba(13, 17, 23, ${Math.min(1, Math.max(0.35, opacity + 0.15))})`,
+                borderColor: `rgba(48, 54, 61, ${Math.min(1, Math.max(0.25, opacity + 0.2))})`,
+                cursor: 'default',
+              }}
+              className="w-full pl-3 pr-16 py-1.5 rounded-lg border text-xs text-white placeholder-dark-400 focus:outline-none focus:ring-1 focus:ring-brand-500 font-sans cursor-default caret-brand-400"
+            />
+            <button
+              type="submit"
+              disabled={isLoading || !quickQuestion.trim()}
+              className="absolute right-1 px-2.5 py-1 rounded-md text-[11px] font-medium bg-brand-600 hover:bg-brand-500 disabled:opacity-40 text-white transition-all flex items-center gap-1 cursor-default"
+            >
+              <Send className="w-3 h-3" />
+              <span>Ask</span>
+            </button>
+          </form>
       </div>
 
       {/* Screen Selection Modal in Overlay */}
