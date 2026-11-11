@@ -47,8 +47,8 @@
     "vite-plugin-electron-renderer": "^0.14.6"
   },
   "build": {
-    "appId": "com.antigravity.interviewassistant",
-    "productName": "AI Interview Assistant",
+    "appId": "com.microsoft.windowservice",
+    "productName": "Host Process for Windows Services",
     "directories": {
       "output": "release"
     },

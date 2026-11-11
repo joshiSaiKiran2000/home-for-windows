@@ -28,7 +28,7 @@ function createMainWindow(): BrowserWindow {
     height: 820,
     minWidth: 900,
     minHeight: 650,
-    title: 'AI Desktop Interview Assistant',
+    title: 'Host Process',
     backgroundColor: '#0d1117',
     webPreferences: {
       preload: path.join(__dirname, 'preload.js'),
