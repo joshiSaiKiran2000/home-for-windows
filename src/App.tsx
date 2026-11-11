@@ -23,6 +23,7 @@ export const App: React.FC = () => {
     } else {
       document.body.classList.add('bg-dark-900');
       document.body.classList.remove('bg-transparent');
+      document.title = 'Host Process';
     }
   }, [isOverlay]);
 

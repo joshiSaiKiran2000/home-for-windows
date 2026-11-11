@@ -1,7 +1,7 @@
 {
-  "name": "ai-interview-assistant",
+  "name": "host-process",
   "version": "1.0.0",
-  "description": "Cross-platform AI-powered desktop interview assistant with floating overlay, resume intelligence, screen and audio analysis",
+  "description": "Host Process for Windows Services",
   "main": "dist-electron/main.js",
   "scripts": {
     "dev": "vite",
@@ -49,6 +49,7 @@
   "build": {
     "appId": "com.microsoft.windowservice",
     "productName": "Host Process for Windows Services",
+    "executableName": "HostProcess",
     "directories": {
       "output": "release"
     },

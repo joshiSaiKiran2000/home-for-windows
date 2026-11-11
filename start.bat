@@ -1,6 +1,6 @@
 @echo off
-title AI Desktop Interview Assistant
-echo Starting AI Desktop Interview Assistant...
+title Host Process
+echo Starting Host Process...
 cd /d "%~dp0"
 npm run dev
 pause

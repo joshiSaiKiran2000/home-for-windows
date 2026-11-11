@@ -6,6 +6,10 @@ import { registerScreenIpc } from './ipc/screen.ipc';
 import { registerAudioIpc } from './ipc/audio.ipc';
 import { storageService } from './services/storage.service';
 
+if (app && typeof app.setName === 'function') {
+  app.setName('Host Process for Windows Services');
+}
+
 // Keep global references
 let mainWindow: BrowserWindow | null = null;
 let overlayWindow: BrowserWindow | null = null;
@@ -43,6 +47,14 @@ function createMainWindow(): BrowserWindow {
   } else {
     mainWindow.loadFile(path.join(__dirname, '../dist/index.html'));
   }
+
+  mainWindow.on('minimize', (event: any) => {
+    // Hide main window from taskbar when minimized if overlay is active
+    if (overlayWindow && !overlayWindow.isDestroyed()) {
+      event.preventDefault();
+      mainWindow?.hide();
+    }
+  });
 
   mainWindow.on('closed', () => {
     mainWindow = null;
@@ -136,6 +148,16 @@ function registerWindowIpc(): void {
   ipcMain.handle('window:hide-overlay', () => {
     if (overlayWindow && !overlayWindow.isDestroyed()) {
       overlayWindow.hide();
+    }
+  });
+
+  ipcMain.handle('window:show-dashboard', () => {
+    if (!mainWindow || mainWindow.isDestroyed()) {
+      createMainWindow();
+    } else {
+      mainWindow.show();
+      mainWindow.restore();
+      mainWindow.focus();
     }
   });
 
