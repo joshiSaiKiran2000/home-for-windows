@@ -40,6 +40,13 @@
     textarea {
       cursor: default !important;
     }
+
+    /* Prevent hand/wrist/grab cursor on floating expand button and window controls */
+    .drag-region,
+    .drag-region button,
+    button:active {
+      cursor: default !important;
+    }
   }
 
   /* Draggable regions for frameless electron windows */

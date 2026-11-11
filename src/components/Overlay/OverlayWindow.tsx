@@ -300,15 +300,19 @@ export const OverlayWindow: React.FC = () => {
 
   if (isMinimized) {
     return (
-      <div className="drag-region w-screen h-screen flex items-center justify-center bg-transparent select-none p-1">
+      <div
+        style={{ cursor: 'default' }}
+        className="drag-region w-screen h-screen flex items-center justify-center bg-transparent select-none p-1 cursor-default"
+      >
         <button
           onPointerDown={handlePointerDown}
           onPointerMove={handlePointerMove}
           onPointerUp={handlePointerUp}
           style={{
             backgroundColor: `rgba(13, 17, 23, ${Math.max(0.85, opacity)})`,
+            cursor: 'default',
           }}
-          className="no-drag group relative flex items-center justify-center w-12 h-12 rounded-2xl border border-brand-500/80 text-brand-400 hover:text-white hover:bg-brand-600 shadow-2xl backdrop-blur-xl transition-colors cursor-grab active:cursor-grabbing hover:scale-105 active:scale-95"
+          className="no-drag group relative flex items-center justify-center w-12 h-12 rounded-2xl border border-brand-500/80 text-brand-400 hover:text-white hover:bg-brand-600 shadow-2xl backdrop-blur-xl transition-colors hover:scale-105 active:scale-95 cursor-default select-none"
         >
           <Maximize2 className="w-5 h-5 transition-transform group-hover:scale-110 pointer-events-none" />
           <span className="absolute -top-0.5 -right-0.5 flex h-3 w-3 pointer-events-none">
@@ -335,8 +339,9 @@ export const OverlayWindow: React.FC = () => {
         style={{
           backgroundColor: `rgba(22, 27, 34, ${Math.min(1, Math.max(0.25, opacity + 0.1))})`,
           borderBottomColor: `rgba(48, 54, 61, ${Math.min(1, Math.max(0.2, opacity + 0.15))})`,
+          cursor: 'default',
         }}
-        className="drag-region flex items-center justify-between px-3.5 py-2.5 border-b cursor-move select-none shrink-0"
+        className="drag-region flex items-center justify-between px-3.5 py-2.5 border-b cursor-default select-none shrink-0"
       >
         <div className="flex items-center gap-2">
           <div className="w-2.5 h-2.5 rounded-full bg-emerald-400 animate-pulse" />
