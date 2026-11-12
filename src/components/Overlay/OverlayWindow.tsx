@@ -17,7 +17,8 @@ import {
   Code2,
   Mic,
   FileText,
-  Settings
+  Settings,
+  Trash2
 } from 'lucide-react';
 import { AnswerResponse, AppSettings } from '../../types';
 import { CodeBlock } from '../AnswerDisplay/CodeBlock';
@@ -119,6 +120,10 @@ export const OverlayWindow: React.FC = () => {
 
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.key === 'Escape') {
+        if (quickQuestion) {
+          setQuickQuestion('');
+          return;
+        }
         if (document.activeElement?.tagName === 'INPUT' && !isMinimized) {
           (document.activeElement as HTMLElement).blur();
           return;
@@ -140,6 +145,15 @@ export const OverlayWindow: React.FC = () => {
         const isPlus = e.key === '+' || e.key === '=' || e.code === 'Equal' || e.code === 'NumpadAdd';
         const isZero = e.key === '0' || e.code === 'Digit0' || e.code === 'Numpad0';
 
+        const isInputFocused = document.activeElement?.tagName === 'INPUT' || document.activeElement?.tagName === 'TEXTAREA';
+
+        // Shortcut to clear text / clear screen (Ctrl + L or Ctrl + K)
+        if ((e.ctrlKey || e.metaKey) && (e.key === 'l' || e.key === 'L' || e.key === 'k' || e.key === 'K') && !isInputFocused) {
+          e.preventDefault();
+          handleClearText();
+          return;
+        }
+
         // Intercept and completely block browser zoom scaling on Ctrl + / -
         if (e.ctrlKey && (isMinus || isPlus)) {
           e.preventDefault();
@@ -155,8 +169,6 @@ export const OverlayWindow: React.FC = () => {
           window.electronAPI?.resetOverlaySize?.();
           return;
         }
-
-        const isInputFocused = document.activeElement?.tagName === 'INPUT' || document.activeElement?.tagName === 'TEXTAREA';
 
         // 1. Ctrl + Shift + Arrows (works everywhere, including inside input with preventDefault)
         if (e.ctrlKey && e.shiftKey) {
@@ -217,6 +229,13 @@ export const OverlayWindow: React.FC = () => {
   }, [isMinimized]);
 
   const activeAnswer = answers[currentIndex] || null;
+
+  const handleClearText = () => {
+    setAnswers([]);
+    setCurrentIndex(0);
+    setQuickQuestion('');
+    setUploadMessage(null);
+  };
 
   const handleCopy = async () => {
     if (!activeAnswer) return;
@@ -535,6 +554,16 @@ export const OverlayWindow: React.FC = () => {
             <FileText className="w-3.5 h-3.5" />
           </button>
 
+          {/* Clear Text / Reset Screen */}
+          {answers.length > 0 && (
+            <button
+              onClick={handleClearText}
+              className="p-1 rounded text-dark-400 hover:text-rose-400 hover:bg-dark-700 transition-colors"
+            >
+              <Trash2 className="w-3.5 h-3.5" />
+            </button>
+          )}
+
           {/* Opacity Quick Slider Button */}
           <div ref={opacityRef} className="relative">
             <button
@@ -774,6 +803,13 @@ export const OverlayWindow: React.FC = () => {
                       {copied ? <Check className="w-3 h-3 text-emerald-400" /> : <Copy className="w-3 h-3" />}
                       <span>{copied ? 'Copied' : 'Copy'}</span>
                     </button>
+                    <button
+                      onClick={handleClearText}
+                      className="flex items-center gap-1 px-2 py-1 rounded-lg text-[11px] font-medium bg-dark-700 hover:bg-rose-950/50 hover:text-rose-300 text-dark-300 transition-colors"
+                    >
+                      <Trash2 className="w-3 h-3 text-dark-400" />
+                      <span>Clear</span>
+                    </button>
                   </div>
                 </div>
 
@@ -830,8 +866,17 @@ export const OverlayWindow: React.FC = () => {
                 borderColor: `rgba(48, 54, 61, ${Math.min(1, Math.max(0.25, opacity + 0.2))})`,
                 cursor: 'default',
               }}
-              className="w-full pl-3 pr-16 py-1.5 rounded-lg border text-xs text-white placeholder-dark-400 focus:outline-none focus:ring-1 focus:ring-brand-500 font-sans cursor-default caret-brand-400"
+              className="w-full pl-3 pr-20 py-1.5 rounded-lg border text-xs text-white placeholder-dark-400 focus:outline-none focus:ring-1 focus:ring-brand-500 font-sans cursor-default caret-brand-400"
             />
+            {quickQuestion && (
+              <button
+                type="button"
+                onClick={() => setQuickQuestion('')}
+                className="absolute right-14 p-1 text-dark-400 hover:text-white transition-colors cursor-default"
+              >
+                <X className="w-3.5 h-3.5" />
+              </button>
+            )}
             <button
               type="submit"
               disabled={isLoading || !quickQuestion.trim()}
