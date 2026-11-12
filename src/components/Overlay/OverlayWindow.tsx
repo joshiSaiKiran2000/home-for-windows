@@ -4,7 +4,6 @@ import {
   X,
   Maximize2,
   Minimize2,
-  Copy,
   Check,
   RotateCw,
   Monitor,
@@ -31,7 +30,6 @@ export const OverlayWindow: React.FC = () => {
   const [isMinimized, setIsMinimized] = useState(false);
   const [opacity, setOpacity] = useState(0.95);
   const [showOpacitySlider, setShowOpacitySlider] = useState(false);
-  const [copied, setCopied] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [quickQuestion, setQuickQuestion] = useState("");
   const [isScreenModalOpen, setIsScreenModalOpen] = useState(false);
@@ -289,17 +287,6 @@ export const OverlayWindow: React.FC = () => {
     setUploadMessage(null);
   };
 
-  const handleCopy = async () => {
-    if (!activeAnswer) return;
-    try {
-      await navigator.clipboard.writeText(activeAnswer.answer);
-      setCopied(true);
-      setTimeout(() => setCopied(false), 2000);
-    } catch (err) {
-      console.error("Failed to copy answer:", err);
-    }
-  };
-
   const handleRegenerate = async () => {
     if (!activeAnswer || isLoading || !window.electronAPI) return;
     setIsLoading(true);
@@ -484,7 +471,12 @@ export const OverlayWindow: React.FC = () => {
       const lang = match[1] || "javascript";
       const code = match[2];
       parts.push(
-        <CodeBlock key={`c-${matchIndex}`} language={lang} code={code} />,
+        <CodeBlock
+          key={`c-${matchIndex}`}
+          language={lang}
+          code={code}
+          hideCopy={true}
+        />,
       );
       lastIndex = matchIndex + match[0].length;
     }
@@ -742,17 +734,6 @@ export const OverlayWindow: React.FC = () => {
                   <RotateCw
                     className={`w-3.5 h-3.5 ${isLoading ? "animate-spin" : ""}`}
                   />
-                </button>
-                <button
-                  onClick={handleCopy}
-                  className="flex items-center gap-1 px-2 py-1 rounded-lg text-[11px] font-medium bg-dark-700 hover:bg-dark-600 text-dark-200 hover:text-white transition-colors"
-                >
-                  {copied ? (
-                    <Check className="w-3 h-3 text-emerald-400" />
-                  ) : (
-                    <Copy className="w-3 h-3" />
-                  )}
-                  <span>{copied ? "Copied" : "Copy"}</span>
                 </button>
                 <button
                   onClick={handleClearText}
