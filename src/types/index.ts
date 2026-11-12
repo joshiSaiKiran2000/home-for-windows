@@ -82,7 +82,7 @@ export interface ElectronAPI {
   // AI APIs
   generateAnswer: (params: { question: string }) => Promise<IPCResult<AnswerResponse>>;
   analyzeJobDescription: (jdText: string) => Promise<IPCResult<JobDescriptionData>>;
-  
+
   // Resume APIs
   uploadResumePdf: () => Promise<IPCResult<ResumeData>>;
   getStoredResume: () => Promise<IPCResult<ResumeData | null>>;
@@ -96,6 +96,7 @@ export interface ElectronAPI {
 
   // Audio APIs
   processAudioChunk: (audioBase64: string, mimeType: string) => Promise<IPCResult<{ detectedQuestion?: string; answer?: AnswerResponse }>>;
+  resetAudioBuffer: () => Promise<IPCResult<void>>;
 
   // Window & Overlay Controls
   toggleOverlay: () => Promise<void>;

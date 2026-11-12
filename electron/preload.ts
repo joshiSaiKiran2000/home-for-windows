@@ -56,6 +56,9 @@ const api = {
   ): Promise<IPCResult<{ detectedQuestion?: string; answer?: AnswerResponse }>> =>
     ipcRenderer.invoke('audio:process-chunk', audioBase64, mimeType),
 
+  resetAudioBuffer: (): Promise<IPCResult<void>> =>
+    ipcRenderer.invoke('audio:reset'),
+
   // Window & Overlay Controls
   toggleOverlay: (): Promise<void> => ipcRenderer.invoke('window:toggle-overlay'),
   showOverlay: (): Promise<void> => ipcRenderer.invoke('window:show-overlay'),

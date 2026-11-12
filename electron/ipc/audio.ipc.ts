@@ -17,5 +17,14 @@ export function registerAudioIpc(): void {
       return { success: false, error: err.message || 'Failed to process audio.' };
     }
   });
+
+  ipcMain.handle('audio:reset', async () => {
+    try {
+      audioService.resetBuffer();
+      return { success: true };
+    } catch (err: any) {
+      return { success: false, error: err.message };
+    }
+  });
 }
 

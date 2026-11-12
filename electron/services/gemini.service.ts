@@ -26,16 +26,14 @@ TECHNICAL QUESTIONS:
 
 CODING QUESTIONS:
 
-- Always prioritize beginner-friendly solutions.
-- Use simple JavaScript code.
-- Prefer for loops, forEach, if/else, basic functions and simple array methods.
-- Avoid advanced shortcuts and unnecessarily complex methods.
-- Avoid Set, Map, reduce and complex one-line solutions when a simpler approach exists.
-- Write code that a beginner can understand and explain.
-- Explain the code step by step.
-- Include expected output.
-- Include time and space complexity when relevant.
-- If multiple solutions exist, show the easiest readable solution first.
+- Directly output the clean, working JavaScript code solution inside a markdown code block (\`\`\`javascript ... \`\`\`).
+- Do NOT include any comments (no inline comments, no step comments, no // comments, no /* */ comments) inside the code.
+- Do NOT include example calls, test arrays, test cases, or console.log statements.
+- Do NOT include conversational introductory filler, greetings, or concluding remarks before or after the code.
+- Only provide the clean function or algorithm implementation.
+- Always prioritize beginner-friendly solutions using simple loops (for, while, if/else, basic functions).
+- Avoid advanced shortcuts, complex one-liners, Set, Map, or reduce when a simple loop works.
+- Write pure, clean code that is ready to be pasted directly into a live coding test or technical interview editor.
 
 PROJECT QUESTIONS:
 
@@ -71,6 +69,196 @@ export class GeminiService {
   }
 
   /**
+   * Remove comments (both multi-line and single-line) and test execution blocks from code.
+   */
+  stripCommentsAndTests(code: string): string {
+    // Remove multi-line comments /* ... */
+    let cleaned = code.replace(/\/\*[\s\S]*?\*\//g, '');
+
+    const lines = cleaned.split('\n');
+    const filtered: string[] = [];
+    let inTestSection = false;
+
+    for (let i = 0; i < lines.length; i++) {
+      const rawLine = lines[i];
+      const trimmed = rawLine.trim();
+
+      // Detect start of test section
+      if (
+        trimmed.toLowerCase().startsWith("// let's test") ||
+        trimmed.toLowerCase().startsWith('// test') ||
+        trimmed.toLowerCase().startsWith('// example') ||
+        trimmed.toLowerCase().startsWith('// usage') ||
+        trimmed.toLowerCase().startsWith('// sample') ||
+        trimmed.toLowerCase().startsWith('// expected output')
+      ) {
+        inTestSection = true;
+        continue;
+      }
+
+      if (inTestSection) {
+        if (
+          trimmed.startsWith('console.') ||
+          trimmed.startsWith('const ') ||
+          trimmed.startsWith('let ') ||
+          trimmed.startsWith('var ') ||
+          trimmed.startsWith('//') ||
+          trimmed.length === 0 ||
+          trimmed.endsWith(');')
+        ) {
+          continue;
+        } else {
+          if (
+            trimmed.startsWith('function ') ||
+            trimmed.startsWith('return ') ||
+            trimmed.startsWith('export ') ||
+            trimmed.startsWith('class ')
+          ) {
+            inTestSection = false;
+          } else {
+            continue;
+          }
+        }
+      }
+
+      // Skip standalone full-line comments
+      if (trimmed.startsWith('//')) {
+        continue;
+      }
+
+      // Skip standalone console logs
+      if (
+        trimmed.startsWith('console.log(') ||
+        trimmed.startsWith('console.info(') ||
+        trimmed.startsWith('console.warn(') ||
+        trimmed.startsWith('console.error(') ||
+        trimmed.startsWith('print(')
+      ) {
+        continue;
+      }
+
+      // Strip trailing inline comments (e.g. `return largest; // return result`)
+      let lineContent = rawLine;
+      const inlineCommentIndex = lineContent.indexOf(' //');
+      if (inlineCommentIndex !== -1) {
+        lineContent = lineContent.substring(0, inlineCommentIndex);
+      }
+
+      const semiCommentIndex = lineContent.indexOf(';//');
+      if (semiCommentIndex !== -1) {
+        lineContent = lineContent.substring(0, semiCommentIndex + 1);
+      }
+
+      filtered.push(lineContent);
+    }
+
+    return filtered
+      .join('\n')
+      .replace(/[ \t]+$/gm, '')
+      .replace(/\n{3,}/g, '\n\n')
+      .trim();
+  }
+
+  /**
+   * For coding questions, extract code blocks, strip all comments and tests, and format directly.
+   */
+  cleanCodingSolution(text: string): string {
+    const codeBlockRegex = /```([a-zA-Z0-9]*)\n([\s\S]*?)```/g;
+    const matches = [...text.matchAll(codeBlockRegex)];
+
+    if (matches.length > 0) {
+      const cleanedBlocks = matches.map(m => {
+        const lang = m[1] || 'javascript';
+        const cleaned = this.stripCommentsAndTests(m[2]);
+        return '```' + lang + '\n' + cleaned + '\n```';
+      });
+
+      return cleanedBlocks.join('\n\n');
+    }
+
+    const cleaned = this.stripCommentsAndTests(text);
+    return '```javascript\n' + cleaned + '\n```';
+  }
+
+  /**
+   * Determine if a question is a coding question / challenge.
+   */
+  isCodingQuestion(question: string, responseText: string): boolean {
+    const q = question.toLowerCase();
+
+    const isExplanationOnly =
+      (q.startsWith('explain ') || q.startsWith('what is ') || q.startsWith('what are ') || q.startsWith('difference between ')) &&
+      !q.includes('write') &&
+      !q.includes('implement') &&
+      !q.includes('code');
+
+    if (isExplanationOnly) {
+      return false;
+    }
+
+    const codingKeywords = [
+      'write code',
+      'write a function',
+      'function to',
+      'write a program',
+      'implement',
+      'algorithm',
+      'find largest',
+      'find smallest',
+      'find maximum',
+      'find minimum',
+      'reverse',
+      'palindrome',
+      'anagram',
+      'fibonacci',
+      'two sum',
+      'debounce',
+      'throttle',
+      'flatten',
+      'sort',
+      'binary search',
+      'linked list',
+      'coding question'
+    ];
+
+    if (codingKeywords.some(kw => q.includes(kw))) {
+      return true;
+    }
+
+    if (
+      (q.includes('code') || q.includes('function') || q.includes('array') || q.includes('how to')) &&
+      (responseText.includes('```javascript') || responseText.includes('```js') || responseText.includes('```typescript'))
+    ) {
+      return true;
+    }
+
+    return false;
+  }
+
+  /**
+   * Sanitize AI answer to ensure coding solutions are cleanly displayed without comments or test runs.
+   */
+  sanitizeAnswer(question: string, responseText: string): { isCoding: boolean; cleanedAnswer: string } {
+    const isCoding = this.isCodingQuestion(question, responseText);
+    if (isCoding) {
+      return {
+        isCoding: true,
+        cleanedAnswer: this.cleanCodingSolution(responseText),
+      };
+    }
+
+    const codeBlockRegex = /```([a-zA-Z0-9]*)\n([\s\S]*?)```/g;
+    const cleanedAnswer = responseText.replace(codeBlockRegex, (_match, lang, code) => {
+      return '```' + (lang || 'javascript') + '\n' + this.stripCommentsAndTests(code) + '\n```';
+    });
+
+    return {
+      isCoding: responseText.includes('```'),
+      cleanedAnswer,
+    };
+  }
+
+  /**
    * Generate an interview answer based on Question, Resume, and Job Description.
    */
   async generateInterviewAnswer(params: {
@@ -86,6 +274,13 @@ export class GeminiService {
     const resume = storageService.getResume();
     const jd = storageService.getJobDescription();
 
+    const isLikelyCoding =
+      /write|function|algorithm|implement|code|program|solve|array|string|find|reverse|sort|duplicate|palindrome/i.test(params.question);
+
+    const codingInstruction = isLikelyCoding
+      ? '\nCRITICAL FOR CODING QUESTIONS: Directly provide ONLY the clean JavaScript code inside a markdown code block (```javascript ... ```). Do NOT include any comments (no // comments, no step comments) inside the code. Do NOT include test cases, example calls, or console.log statements. Do NOT include conversational pleasantries, introductory text, or concluding explanations.'
+      : '';
+
     const promptContext = [
       '### CANDIDATE CONTEXT:',
       resume
@@ -99,24 +294,18 @@ export class GeminiService {
       `### INTERVIEW QUESTION:`,
       `"${params.question}"`,
       '',
-      'Provide your response following all SYSTEM INSTRUCTIONS. Keep it direct, natural, conversational, and practical.'
+      'Provide your response following all SYSTEM INSTRUCTIONS. Keep it direct, natural, conversational, and practical.' + codingInstruction
     ].join('\n');
 
     const result = await model.generateContent(promptContext);
     const responseText = result.response.text();
 
-    const isCoding =
-      params.question.toLowerCase().includes('write code') ||
-      params.question.toLowerCase().includes('function') ||
-      params.question.toLowerCase().includes('algorithm') ||
-      params.question.toLowerCase().includes('implement') ||
-      responseText.includes('```javascript') ||
-      responseText.includes('```js');
+    const { isCoding, cleanedAnswer } = this.sanitizeAnswer(params.question, responseText);
 
     return {
       id: 'ans-' + Date.now() + '-' + Math.random().toString(36).substr(2, 5),
       question: params.question,
-      answer: responseText,
+      answer: cleanedAnswer,
       source: params.source || 'manual',
       timestamp: Date.now(),
       isCodingQuestion: isCoding,
@@ -252,10 +441,11 @@ Return valid JSON with exactly this structure:
 1. Check if there is a coding challenge, algorithm problem, programming question, or technical test on screen.
 2. If there IS a coding problem or question:
    - Identify the exact problem statement.
-   - Provide a beginner-friendly, clean JavaScript solution.
+   - Directly provide the clean, beginner-friendly JavaScript code solution inside a markdown code block (\`\`\`javascript ... \`\`\`).
+   - Do NOT include any comments (no inline comments, no step comments, no // comments) inside the code.
+   - Do NOT include test cases, example arrays, or console.log statements.
+   - Do NOT include conversational greetings or extra text before or after the code block.
    - Use simple loops (for, while, if/else, basic functions). Avoid complex one-liners, Set, Map, or reduce when a simple loop works.
-   - Explain the code step-by-step.
-   - Include expected output and time/space complexity.
 3. If there is an error message, stack trace or bug:
    - Explain the cause in simple English and give the direct fix.
 4. If there is NO coding problem on the screen:
@@ -273,16 +463,12 @@ Keep the answer natural, practical, and interview-ready.`;
     ]);
 
     const responseText = result.response.text();
-    const isCoding =
-      responseText.includes('```javascript') ||
-      responseText.includes('```js') ||
-      responseText.toLowerCase().includes('function') ||
-      responseText.toLowerCase().includes('algorithm');
+    const { isCoding, cleanedAnswer } = this.sanitizeAnswer('Screen Analysis / Code Problem', responseText);
 
     return {
       id: 'screen-' + Date.now() + '-' + Math.random().toString(36).substr(2, 5),
       question: 'Screen Analysis / Code Problem',
-      answer: responseText,
+      answer: cleanedAnswer,
       source: 'screen',
       timestamp: Date.now(),
       isCodingQuestion: isCoding,
@@ -358,8 +544,40 @@ Return JSON in this exact structure:
   async evaluateTranscribedQuestion(
     transcript: string
   ): Promise<{ detectedQuestion?: string; answer?: AnswerResponse }> {
-    if (!transcript || transcript.trim().length < 5) {
+    const trimmed = (transcript || '').trim();
+    // Ignore empty or extremely short inputs
+    if (!trimmed || trimmed.length < 10) {
       return {};
+    }
+
+    // Filter common filler and acknowledgments to avoid wasting Gemini tokens
+    const lower = trimmed.toLowerCase().replace(/[^a-z0-9 ]/g, '').trim();
+    const commonFiller = [
+      'yes', 'no', 'yeah', 'yep', 'nope', 'okay', 'ok', 'sure', 'alright',
+      'hello', 'hi', 'hey', 'good morning', 'good afternoon', 'good evening',
+      'thank you', 'thanks', 'cool', 'got it', 'i see', 'right', 'fine',
+      'um', 'uh', 'hmm', 'can you hear me', 'am i audible', 'testing'
+    ];
+
+    if (commonFiller.includes(lower)) {
+      return {
+        detectedQuestion: `(Transcription: "${trimmed}")`,
+      };
+    }
+
+    const words = lower.split(/\s+/);
+    const questionStarters = [
+      'what', 'why', 'how', 'explain', 'describe', 'tell', 'who', 'when',
+      'where', 'can', 'could', 'would', 'is', 'are', 'do', 'does', 'write',
+      'implement', 'walk', 'difference'
+    ];
+    const hasQuestionIndicator = trimmed.includes('?') || questionStarters.some(w => lower.includes(w));
+
+    // If it's very short and contains no question indicators, it's casual chatter - don't waste tokens
+    if (words.length < 4 && !hasQuestionIndicator) {
+      return {
+        detectedQuestion: `(Transcription: "${trimmed}")`,
+      };
     }
 
     const ai = this.getClient();

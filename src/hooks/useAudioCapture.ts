@@ -12,6 +12,7 @@ export function useAudioCapture(onQuestionDetected?: (question: string) => void)
   const audioContextRef = useRef<AudioContext | null>(null);
   const rawStreamsRef = useRef<MediaStream[]>([]);
   const intervalRef = useRef<any>(null);
+  const speechDetectedRef = useRef<boolean>(false);
 
   const startListening = useCallback(async () => {
     try {
@@ -90,6 +91,42 @@ export function useAudioCapture(onQuestionDetected?: (question: string) => void)
 
       streamRef.current = finalStream;
 
+      // Web Audio Analyser for Silence / Voice Activity Detection (VAD)
+      const AudioContextClass = window.AudioContext || (window as any).webkitAudioContext;
+      const ctx = audioContextRef.current || new AudioContextClass();
+      audioContextRef.current = ctx;
+
+      const analyser = ctx.createAnalyser();
+      analyser.fftSize = 512;
+      analyser.smoothingTimeConstant = 0.2;
+      const sourceNode = ctx.createMediaStreamSource(finalStream);
+      sourceNode.connect(analyser);
+
+      const freqData = new Uint8Array(analyser.frequencyBinCount);
+      speechDetectedRef.current = false;
+      const SPEECH_ENERGY_THRESHOLD = 14;
+
+      if (intervalRef.current) {
+        clearInterval(intervalRef.current);
+        intervalRef.current = null;
+      }
+
+      // Sample energy across voice frequencies every 100ms
+      intervalRef.current = setInterval(() => {
+        analyser.getByteFrequencyData(freqData);
+        let total = 0;
+        let count = 0;
+        // Human voice frequency bins ~150Hz to 3500Hz
+        for (let i = 4; i < Math.min(freqData.length, 100); i++) {
+          total += freqData[i];
+          count++;
+        }
+        const avg = count > 0 ? total / count : 0;
+        if (avg > SPEECH_ENERGY_THRESHOLD) {
+          speechDetectedRef.current = true;
+        }
+      }, 100);
+
       // Determine mimeType
       let mimeType = 'audio/webm;codecs=opus';
       if (!MediaRecorder.isTypeSupported(mimeType)) {
@@ -100,6 +137,28 @@ export function useAudioCapture(onQuestionDetected?: (question: string) => void)
       mediaRecorderRef.current = recorder;
 
       recorder.ondataavailable = async (e) => {
+        const hasSpeech = speechDetectedRef.current;
+        speechDetectedRef.current = false; // Reset for next slice
+
+        // Silence / Inactivity: If no speech was detected in this slice, notify backend to finalize any accumulated question
+        if (!hasSpeech) {
+          if (window.electronAPI) {
+            window.electronAPI.processAudioChunk('', mimeType).then((res) => {
+              if (res.success && res.data?.detectedQuestion && res.data?.answer) {
+                setAudioState(prev => ({
+                  ...prev,
+                  lastDetectedQuestion: res.data?.detectedQuestion,
+                  status: 'listening',
+                }));
+                if (onQuestionDetected) {
+                  onQuestionDetected(res.data.detectedQuestion);
+                }
+              }
+            }).catch(() => { });
+          }
+          return;
+        }
+
         if (e.data && e.data.size > 2000) {
           try {
             setAudioState(prev => ({ ...prev, status: 'processing' }));
@@ -131,8 +190,8 @@ export function useAudioCapture(onQuestionDetected?: (question: string) => void)
         }
       };
 
-      // Slice audio in 5-second chunks for responsive speech cadence & question detection
-      recorder.start(5000);
+      // Slice audio in responsive 3.5-second chunks for natural speech cadence & question detection
+      recorder.start(3500);
 
       setAudioState({
         isListening: true,
@@ -172,6 +231,11 @@ export function useAudioCapture(onQuestionDetected?: (question: string) => void)
       }
       if (intervalRef.current) {
         clearInterval(intervalRef.current);
+        intervalRef.current = null;
+      }
+      speechDetectedRef.current = false;
+      if (window.electronAPI?.resetAudioBuffer) {
+        window.electronAPI.resetAudioBuffer().catch(() => { });
       }
     } catch (err) {
       console.error('Error stopping audio:', err);

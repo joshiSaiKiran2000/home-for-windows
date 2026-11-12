@@ -1,7 +1,15 @@
-import React, { useState } from 'react';
-import { Copy, Check, RotateCw, Monitor, Mic, HelpCircle, Code } from 'lucide-react';
-import { AnswerResponse } from '../../types';
-import { CodeBlock } from './CodeBlock';
+import React, { useState } from "react";
+import {
+  Copy,
+  Check,
+  RotateCw,
+  Monitor,
+  Mic,
+  HelpCircle,
+  Code,
+} from "lucide-react";
+import { AnswerResponse } from "../../types";
+import { CodeBlock } from "./CodeBlock";
 
 interface AnswerCardProps {
   answer: AnswerResponse;
@@ -9,7 +17,11 @@ interface AnswerCardProps {
   compact?: boolean;
 }
 
-export const AnswerCard: React.FC<AnswerCardProps> = ({ answer, onRegenerate, compact = false }) => {
+export const AnswerCard: React.FC<AnswerCardProps> = ({
+  answer,
+  onRegenerate,
+  compact = false,
+}) => {
   const [copied, setCopied] = useState(false);
 
   const handleCopy = async () => {
@@ -18,19 +30,19 @@ export const AnswerCard: React.FC<AnswerCardProps> = ({ answer, onRegenerate, co
       setCopied(true);
       setTimeout(() => setCopied(false), 2000);
     } catch (err) {
-      console.error('Failed to copy text:', err);
+      console.error("Failed to copy text:", err);
     }
   };
 
   const getSourceBadge = () => {
     switch (answer.source) {
-      case 'audio':
+      case "audio":
         return (
           <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-medium bg-purple-500/10 text-purple-400 border border-purple-500/20">
             <Mic className="w-3 h-3" /> Live Audio
           </span>
         );
-      case 'screen':
+      case "screen":
         return (
           <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-medium bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
             <Monitor className="w-3 h-3" /> Screen Vision
@@ -54,27 +66,38 @@ export const AnswerCard: React.FC<AnswerCardProps> = ({ answer, onRegenerate, co
 
     while ((match = codeBlockRegex.exec(text)) !== null) {
       const matchIndex = match.index;
-      if (matchIndex > lastIndex) {
+      if (
+        matchIndex > lastIndex &&
+        text.substring(lastIndex, matchIndex).trim()
+      ) {
         const prose = text.substring(lastIndex, matchIndex);
         parts.push(
-          <div key={`prose-${lastIndex}`} className="space-y-2 whitespace-pre-wrap leading-relaxed text-dark-200">
+          <div
+            key={`prose-${lastIndex}`}
+            className="space-y-2 whitespace-pre-wrap leading-relaxed text-dark-200"
+          >
             {prose}
-          </div>
+          </div>,
         );
       }
 
-      const lang = match[1] || 'javascript';
+      const lang = match[1] || "javascript";
       const code = match[2];
-      parts.push(<CodeBlock key={`code-${matchIndex}`} language={lang} code={code} />);
+      parts.push(
+        <CodeBlock key={`code-${matchIndex}`} language={lang} code={code} />,
+      );
 
       lastIndex = matchIndex + match[0].length;
     }
 
-    if (lastIndex < text.length) {
+    if (lastIndex < text.length && text.substring(lastIndex).trim()) {
       parts.push(
-        <div key={`prose-${lastIndex}`} className="space-y-2 whitespace-pre-wrap leading-relaxed text-dark-200">
+        <div
+          key={`prose-${lastIndex}`}
+          className="space-y-2 whitespace-pre-wrap leading-relaxed text-dark-200"
+        >
           {text.substring(lastIndex)}
-        </div>
+        </div>,
       );
     }
 
@@ -83,8 +106,9 @@ export const AnswerCard: React.FC<AnswerCardProps> = ({ answer, onRegenerate, co
 
   return (
     <div
-      className={`rounded-xl border border-dark-700 bg-dark-800/80 backdrop-blur-md transition-all shadow-sm ${compact ? 'p-3' : 'p-5'
-        }`}
+      className={`rounded-xl border border-dark-700 bg-dark-800/80 backdrop-blur-md transition-all shadow-sm ${
+        compact ? "p-3" : "p-5"
+      }`}
     >
       {/* Header */}
       <div className="flex items-start justify-between gap-2 pb-2 mb-3 border-b border-dark-700/60">
@@ -96,7 +120,10 @@ export const AnswerCard: React.FC<AnswerCardProps> = ({ answer, onRegenerate, co
             </span>
           )}
           <span className="text-[11px] text-dark-400">
-            {new Date(answer.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+            {new Date(answer.timestamp).toLocaleTimeString([], {
+              hour: "2-digit",
+              minute: "2-digit",
+            })}
           </span>
         </div>
 
@@ -113,8 +140,12 @@ export const AnswerCard: React.FC<AnswerCardProps> = ({ answer, onRegenerate, co
             onClick={handleCopy}
             className="flex items-center gap-1 px-2 py-1 rounded-lg text-xs font-medium bg-dark-700/80 hover:bg-dark-600 text-dark-200 hover:text-white transition-colors"
           >
-            {copied ? <Check className="w-3.5 h-3.5 text-emerald-400" /> : <Copy className="w-3.5 h-3.5" />}
-            <span>{copied ? 'Copied' : 'Copy'}</span>
+            {copied ? (
+              <Check className="w-3.5 h-3.5 text-emerald-400" />
+            ) : (
+              <Copy className="w-3.5 h-3.5" />
+            )}
+            <span>{copied ? "Copied" : "Copy"}</span>
           </button>
         </div>
       </div>
@@ -128,10 +159,11 @@ export const AnswerCard: React.FC<AnswerCardProps> = ({ answer, onRegenerate, co
       </div>
 
       {/* Content */}
-      <div className={`text-sm text-dark-200 select-text ${compact ? 'max-h-96 overflow-y-auto pr-1' : ''}`}>
+      <div
+        className={`text-sm text-dark-200 select-text ${compact ? "max-h-96 overflow-y-auto pr-1" : ""}`}
+      >
         {renderFormattedAnswer(answer.answer)}
       </div>
     </div>
   );
 };
-
