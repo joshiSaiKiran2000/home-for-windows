@@ -102,6 +102,8 @@ export interface ElectronAPI {
   toggleOverlay: () => Promise<void>;
   showOverlay: () => Promise<void>;
   hideOverlay: () => Promise<void>;
+  closeOverlay: () => Promise<void>;
+  stopOverlay: () => Promise<void>;
   showDashboard: () => Promise<void>;
   setOverlayOpacity: (opacity: number) => Promise<void>;
   setOverlayCompact: (compact: boolean) => Promise<void>;

@@ -19,6 +19,8 @@ import {
   FileText,
   Settings,
   Trash2,
+  Square,
+  Power,
 } from "lucide-react";
 import { AnswerResponse, AppSettings } from "../../types";
 import { CodeBlock } from "../AnswerDisplay/CodeBlock";
@@ -748,6 +750,18 @@ export const OverlayWindow: React.FC = () => {
                   <p className="text-[10px] text-dark-400 leading-tight">
                     Shortcuts: Ctrl+0 (Reset) • Ctrl+Shift+Arrows (Resize)
                   </p>
+
+                  {/* Stop Overlay Action */}
+                  <div className="pt-2 border-t border-dark-700">
+                    <button
+                      type="button"
+                      onClick={() => (window.electronAPI?.closeOverlay ? window.electronAPI.closeOverlay() : window.electronAPI?.closeWindow())}
+                      className="w-full px-2 py-1.5 rounded-md text-[11px] font-semibold bg-rose-600/20 hover:bg-rose-600 text-rose-300 hover:text-white border border-rose-500/30 hover:border-transparent transition-colors flex items-center justify-center gap-1.5"
+                    >
+                      <Square className="w-3 h-3 fill-current text-rose-400" />
+                      <span>Stop Overlay (Close)</span>
+                    </button>
+                  </div>
                 </div>
               </div>
             )}
@@ -781,10 +795,11 @@ export const OverlayWindow: React.FC = () => {
             <Minus className="w-3.5 h-3.5" />
           </button>
 
-          {/* Close / Hide */}
+          {/* Close Overlay */}
           <button
-            onClick={() => window.electronAPI?.hideOverlay()}
+            onClick={() => (window.electronAPI?.closeOverlay ? window.electronAPI.closeOverlay() : window.electronAPI?.closeWindow())}
             className="p-1 rounded text-dark-400 hover:text-rose-400 hover:bg-dark-700 transition-colors"
+            title="Stop / Close Overlay"
           >
             <X className="w-3.5 h-3.5" />
           </button>

@@ -220,7 +220,25 @@ function registerWindowIpc(): void {
 
   ipcMain.handle('window:hide-overlay', () => {
     if (overlayWindow && !overlayWindow.isDestroyed()) {
-      overlayWindow.hide();
+      overlayWindow.close();
+      overlayWindow = null;
+      broadcastToAllWindows('app:overlay-closed');
+    }
+  });
+
+  ipcMain.handle('window:close-overlay', () => {
+    if (overlayWindow && !overlayWindow.isDestroyed()) {
+      overlayWindow.close();
+      overlayWindow = null;
+      broadcastToAllWindows('app:overlay-closed');
+    }
+  });
+
+  ipcMain.handle('window:stop-overlay', () => {
+    if (overlayWindow && !overlayWindow.isDestroyed()) {
+      overlayWindow.close();
+      overlayWindow = null;
+      broadcastToAllWindows('app:overlay-closed');
     }
   });
 
@@ -370,7 +388,9 @@ function registerWindowIpc(): void {
     const win = BrowserWindow.fromWebContents(event.sender);
     if (win) {
       if (win === overlayWindow) {
-        win.hide();
+        win.close();
+        overlayWindow = null;
+        broadcastToAllWindows('app:overlay-closed');
       } else {
         win.close();
       }

@@ -63,6 +63,8 @@ const api = {
   toggleOverlay: (): Promise<void> => ipcRenderer.invoke('window:toggle-overlay'),
   showOverlay: (): Promise<void> => ipcRenderer.invoke('window:show-overlay'),
   hideOverlay: (): Promise<void> => ipcRenderer.invoke('window:hide-overlay'),
+  closeOverlay: (): Promise<void> => ipcRenderer.invoke('window:close-overlay'),
+  stopOverlay: (): Promise<void> => ipcRenderer.invoke('window:stop-overlay'),
   showDashboard: (): Promise<void> => ipcRenderer.invoke('window:show-dashboard'),
   setOverlayOpacity: (opacity: number): Promise<void> =>
     ipcRenderer.invoke('window:set-opacity', opacity),

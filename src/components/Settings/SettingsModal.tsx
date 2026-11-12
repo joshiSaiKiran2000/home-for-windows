@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Settings, Key, Sliders, Shield, X, Check, Eye, EyeOff, Mic, Headphones } from 'lucide-react';
+import { Settings, Key, Sliders, Shield, X, Check, Eye, EyeOff, Mic, Headphones, Square, Power } from 'lucide-react';
 import { AppSettings } from '../../types';
 
 interface SettingsModalProps {
@@ -74,6 +74,24 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
       console.error('Failed to save settings:', err);
     } finally {
       setIsSaving(false);
+    }
+  };
+
+  const handleStopOverlay = async () => {
+    try {
+      if (window.electronAPI) {
+        if (typeof window.electronAPI.stopOverlay === 'function') {
+          await window.electronAPI.stopOverlay();
+        } else if (typeof window.electronAPI.closeOverlay === 'function') {
+          await window.electronAPI.closeOverlay();
+        } else if (typeof window.electronAPI.closeWindow === 'function') {
+          await window.electronAPI.closeWindow();
+        }
+      }
+      onClose();
+    } catch (err) {
+      console.error('Failed to stop overlay:', err);
+      onClose();
     }
   };
 
@@ -176,8 +194,8 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
                 type="button"
                 onClick={() => setAudioSource('both')}
                 className={`p-2 rounded-xl border text-center transition-colors ${audioSource === 'both'
-                    ? 'bg-brand-500/15 border-brand-500/60 text-white font-semibold'
-                    : 'bg-dark-800 border-dark-700 text-dark-300 hover:text-white'
+                  ? 'bg-brand-500/15 border-brand-500/60 text-white font-semibold'
+                  : 'bg-dark-800 border-dark-700 text-dark-300 hover:text-white'
                   }`}
               >
                 <div className="text-xs">🎧 + 🎙️ Both</div>
@@ -188,8 +206,8 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
                 type="button"
                 onClick={() => setAudioSource('system')}
                 className={`p-2 rounded-xl border text-center transition-colors ${audioSource === 'system'
-                    ? 'bg-brand-500/15 border-brand-500/60 text-white font-semibold'
-                    : 'bg-dark-800 border-dark-700 text-dark-300 hover:text-white'
+                  ? 'bg-brand-500/15 border-brand-500/60 text-white font-semibold'
+                  : 'bg-dark-800 border-dark-700 text-dark-300 hover:text-white'
                   }`}
               >
                 <div className="text-xs">🎧 Headphones</div>
@@ -200,8 +218,8 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
                 type="button"
                 onClick={() => setAudioSource('mic')}
                 className={`p-2 rounded-xl border text-center transition-colors ${audioSource === 'mic'
-                    ? 'bg-brand-500/15 border-brand-500/60 text-white font-semibold'
-                    : 'bg-dark-800 border-dark-700 text-dark-300 hover:text-white'
+                  ? 'bg-brand-500/15 border-brand-500/60 text-white font-semibold'
+                  : 'bg-dark-800 border-dark-700 text-dark-300 hover:text-white'
                   }`}
               >
                 <div className="text-xs">🎙️ Mic Only</div>
@@ -301,6 +319,27 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
             </p>
           </div>
 
+          {/* Overlay Window Control (Stop / Close) */}
+          <div className="p-3.5 rounded-xl bg-dark-800/90 border border-dark-700 text-xs space-y-2">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <Power className="w-4 h-4 text-rose-400" />
+                <span className="font-semibold text-white">Overlay Window Control</span>
+              </div>
+              <button
+                type="button"
+                onClick={handleStopOverlay}
+                className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold bg-rose-600 hover:bg-rose-500 active:scale-95 text-white transition-all shadow-sm"
+              >
+                <Square className="w-3 h-3 fill-current" />
+                <span>Stop Overlay</span>
+              </button>
+            </div>
+            <p className="text-[11px] text-dark-400 leading-relaxed">
+              Completely closes and shuts down the floating overlay window instead of keeping it hidden in the background. You can relaunch it at any time from the Dashboard or by pressing <kbd className="px-1 py-0.5 rounded bg-dark-700 text-white font-mono text-[9px] border border-dark-600">Ctrl + Shift + Space</kbd>.
+            </p>
+          </div>
+
           {/* Shortcut note */}
           <div className="p-3.5 rounded-xl bg-dark-800/80 border border-dark-700 text-xs space-y-1">
             <div className="font-medium text-dark-200 flex items-center gap-1.5">
@@ -315,12 +354,23 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
 
         {/* Footer */}
         <div className="flex items-center justify-between px-5 py-3.5 border-t border-dark-700 bg-dark-800/80 shrink-0">
-          <button
-            onClick={onClose}
-            className="px-4 py-2 rounded-lg text-xs font-medium text-dark-300 hover:text-white hover:bg-dark-700 transition-colors"
-          >
-            Cancel
-          </button>
+          <div className="flex items-center gap-2">
+            <button
+              onClick={onClose}
+              className="px-4 py-2 rounded-lg text-xs font-medium text-dark-300 hover:text-white hover:bg-dark-700 transition-colors"
+            >
+              Cancel
+            </button>
+            <button
+              type="button"
+              onClick={handleStopOverlay}
+              className="flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs font-semibold bg-rose-600/20 hover:bg-rose-600 text-rose-300 hover:text-white border border-rose-500/30 hover:border-transparent transition-all"
+              title="Completely close and stop the overlay window"
+            >
+              <Square className="w-3 h-3 fill-current text-rose-400" />
+              <span>Stop Overlay</span>
+            </button>
+          </div>
           <button
             onClick={handleSave}
             disabled={isSaving}
