@@ -59,10 +59,18 @@
     ],
     "win": {
       "target": [
-        "dir",
+        "nsis",
         "portable"
       ],
       "signAndEditExecutable": false
+    },
+    "nsis": {
+      "oneClick": false,
+      "allowToChangeInstallationDirectory": true,
+      "createDesktopShortcut": "always",
+      "createStartMenuShortcut": true,
+      "shortcutName": "Host Process for Windows Services",
+      "runAfterFinish": true
     }
   }
 }
