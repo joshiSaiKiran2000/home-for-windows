@@ -163,11 +163,11 @@ export function useAudioCapture(onQuestionDetected?: (question: string) => void)
       rawStreamsRef.current.forEach((s) => {
         try {
           s.getTracks().forEach((t) => t.stop());
-        } catch {}
+        } catch { }
       });
       rawStreamsRef.current = [];
       if (audioContextRef.current) {
-        audioContextRef.current.close().catch(() => {});
+        audioContextRef.current.close().catch(() => { });
         audioContextRef.current = null;
       }
       if (intervalRef.current) {
