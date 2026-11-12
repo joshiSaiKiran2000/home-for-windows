@@ -44,7 +44,20 @@ export const DashboardPage: React.FC = () => {
       setAnswers((prev) => [newAns, ...prev]);
     });
 
-    return () => cleanup();
+    const cleanupResume = window.electronAPI.onResumeUpdated?.((newResume) => {
+      setResume(newResume);
+    });
+
+    const cleanupContext = window.electronAPI.onContextCleared?.(() => {
+      setResume(null);
+      setJobDescription(null);
+    });
+
+    return () => {
+      cleanup();
+      cleanupResume?.();
+      cleanupContext?.();
+    };
   }, []);
 
   // Handlers

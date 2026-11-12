@@ -137,6 +137,22 @@ const api = {
       ipcRenderer.removeListener('app:overlay-opacity-change', handler);
     };
   },
+
+  onResumeUpdated: (callback: (resume: any) => void) => {
+    const handler = (_event: any, resume: any) => callback(resume);
+    ipcRenderer.on('app:resume-updated', handler);
+    return () => {
+      ipcRenderer.removeListener('app:resume-updated', handler);
+    };
+  },
+
+  onContextCleared: (callback: () => void) => {
+    const handler = () => callback();
+    ipcRenderer.on('app:context-cleared', handler);
+    return () => {
+      ipcRenderer.removeListener('app:context-cleared', handler);
+    };
+  },
 };
 
 contextBridge.exposeInMainWorld('electronAPI', api);

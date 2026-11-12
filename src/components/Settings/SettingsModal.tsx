@@ -1,6 +1,24 @@
 import React, { useState, useEffect } from 'react';
-import { Settings, Key, Sliders, Shield, X, Check, Eye, EyeOff, Mic, Headphones, Square, Power } from 'lucide-react';
-import { AppSettings } from '../../types';
+import {
+  Settings,
+  Key,
+  Sliders,
+  Shield,
+  X,
+  Check,
+  Eye,
+  EyeOff,
+  Mic,
+  Headphones,
+  Square,
+  Power,
+  FileText,
+  Upload,
+  Trash2,
+  CheckCircle2,
+  User,
+} from 'lucide-react';
+import { AppSettings, ResumeData } from '../../types';
 
 interface SettingsModalProps {
   isOpen: boolean;
@@ -24,9 +42,20 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
   const [showDeepgramKey, setShowDeepgramKey] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [savedSuccess, setSavedSuccess] = useState(false);
+  const [resume, setResume] = useState<ResumeData | null>(null);
+  const [isResumeLoading, setIsResumeLoading] = useState(false);
+  const [resumeMessage, setResumeMessage] = useState<string | null>(null);
 
   useEffect(() => {
     if (isOpen && window.electronAPI) {
+      window.electronAPI.getStoredResume().then((res) => {
+        if (res.success && res.data) {
+          setResume(res.data);
+        } else {
+          setResume(null);
+        }
+      });
+
       window.electronAPI.getSettings().then((res) => {
         if (res.success && res.data) {
           setApiKey(res.data.geminiApiKey || '');
@@ -95,6 +124,42 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
     }
   };
 
+  const handleUploadResume = async () => {
+    if (!window.electronAPI) return;
+    setIsResumeLoading(true);
+    setResumeMessage(null);
+    try {
+      const res = await window.electronAPI.uploadResumePdf();
+      if (res.success && res.data) {
+        setResume(res.data);
+        setResumeMessage(`Resume parsed successfully${res.data.name ? ` (${res.data.name})` : ''}!`);
+        setTimeout(() => setResumeMessage(null), 4000);
+      } else if (res.error) {
+        setResumeMessage(`Error: ${res.error}`);
+        setTimeout(() => setResumeMessage(null), 4000);
+      }
+    } catch (err: any) {
+      if (err.message && !err.message.includes('canceled')) {
+        setResumeMessage(`Upload error: ${err.message}`);
+        setTimeout(() => setResumeMessage(null), 4000);
+      }
+    } finally {
+      setIsResumeLoading(false);
+    }
+  };
+
+  const handleClearResume = async () => {
+    if (!window.electronAPI) return;
+    try {
+      await window.electronAPI.clearContext();
+      setResume(null);
+      setResumeMessage('Resume removed');
+      setTimeout(() => setResumeMessage(null), 3000);
+    } catch (err: any) {
+      console.error('Failed to remove resume:', err);
+    }
+  };
+
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-3 bg-black/70 backdrop-blur-sm animate-fade-in overflow-hidden">
       <div className="w-full max-w-lg max-h-[85vh] rounded-2xl bg-dark-900 border border-dark-700 shadow-2xl overflow-hidden flex flex-col">
@@ -144,6 +209,107 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
             <p className="text-[11px] text-dark-400 mt-1">
               Your key is stored securely on your local device only.
             </p>
+          </div>
+
+          {/* Candidate Resume Upload */}
+          <div className="p-3.5 rounded-xl bg-dark-800/80 border border-dark-700 space-y-2.5">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <div className="p-1.5 rounded-lg bg-indigo-500/10 text-brand-400 border border-indigo-500/20">
+                  <FileText className="w-4 h-4" />
+                </div>
+                <div>
+                  <h4 className="text-xs font-semibold text-white">Candidate Resume</h4>
+                  <p className="text-[10px] text-dark-400">PDF parsed by Gemini for tailored responses</p>
+                </div>
+              </div>
+
+              <div className="flex items-center gap-1.5">
+                {resume && (
+                  <button
+                    type="button"
+                    onClick={handleClearResume}
+                    disabled={isResumeLoading}
+                    className="flex items-center gap-1 px-2 py-1 rounded-lg text-xs font-medium text-dark-400 hover:text-rose-400 hover:bg-dark-700 transition-colors"
+                  >
+                    <Trash2 className="w-3 h-3" />
+                    <span>Remove</span>
+                  </button>
+                )}
+                <button
+                  type="button"
+                  onClick={handleUploadResume}
+                  disabled={isResumeLoading}
+                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold bg-brand-600 hover:bg-brand-500 disabled:opacity-50 text-white transition-all shadow-sm"
+                >
+                  {isResumeLoading ? (
+                    <>
+                      <div className="w-3 h-3 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                      <span>Analyzing...</span>
+                    </>
+                  ) : (
+                    <>
+                      <Upload className="w-3 h-3" />
+                      <span>{resume ? 'Change Resume' : 'Upload Resume PDF'}</span>
+                    </>
+                  )}
+                </button>
+              </div>
+            </div>
+
+            {resumeMessage && (
+              <div
+                className={`p-2 rounded-lg text-xs flex items-center gap-1.5 ${
+                  resumeMessage.startsWith('Error') || resumeMessage.startsWith('Upload error')
+                    ? 'bg-rose-950/40 border border-rose-800/50 text-rose-300'
+                    : 'bg-emerald-950/40 border border-emerald-800/50 text-emerald-300'
+                }`}
+              >
+                <CheckCircle2 className="w-3.5 h-3.5 shrink-0" />
+                <span>{resumeMessage}</span>
+              </div>
+            )}
+
+            {resume ? (
+              <div className="p-2.5 rounded-lg bg-dark-900/60 border border-dark-700/60 space-y-1.5">
+                <div className="flex items-center justify-between text-xs">
+                  <div className="flex items-center gap-1.5 font-medium text-white">
+                    <User className="w-3.5 h-3.5 text-brand-400" />
+                    <span>{resume.name || 'Candidate Resume'}</span>
+                  </div>
+                  <span className="flex items-center gap-1 text-[10px] text-emerald-400 font-medium">
+                    <CheckCircle2 className="w-3 h-3" />
+                    Active & Cached
+                  </span>
+                </div>
+
+                {(resume.skills.length > 0 || resume.languages.length > 0) && (
+                  <div className="flex flex-wrap gap-1 max-h-16 overflow-y-auto pt-0.5">
+                    {[...resume.languages, ...resume.frameworks, ...resume.skills].slice(0, 10).map((skill, idx) => (
+                      <span
+                        key={idx}
+                        className="px-1.5 py-0.5 text-[10px] rounded bg-dark-700/80 text-dark-300 border border-dark-600/50"
+                      >
+                        {skill}
+                      </span>
+                    ))}
+                    {[...resume.languages, ...resume.frameworks, ...resume.skills].length > 10 && (
+                      <span className="px-1.5 py-0.5 text-[10px] text-dark-400">
+                        +{[...resume.languages, ...resume.frameworks, ...resume.skills].length - 10} more
+                      </span>
+                    )}
+                  </div>
+                )}
+              </div>
+            ) : (
+              <div
+                onClick={handleUploadResume}
+                className="cursor-pointer border border-dashed border-dark-700 hover:border-brand-500/50 rounded-lg p-3 bg-dark-900/30 hover:bg-dark-900/60 transition-all flex items-center justify-center gap-2 text-dark-400 hover:text-white"
+              >
+                <Upload className="w-4 h-4 text-brand-400" />
+                <span className="text-xs">Click to select and upload your resume (.pdf)</span>
+              </div>
+            )}
           </div>
 
           {/* Speech-to-Text Provider (Deepgram / Gemini) */}

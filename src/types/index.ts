@@ -127,6 +127,8 @@ export interface ElectronAPI {
   onOverlayModeChange: (callback: (isCompact: boolean) => void) => () => void;
   onOverlayMinimizedChange: (callback: (isMinimized: boolean) => void) => () => void;
   onOverlayOpacityChange: (callback: (opacity: number) => void) => () => void;
+  onResumeUpdated?: (callback: (resume: ResumeData) => void) => () => void;
+  onContextCleared?: (callback: () => void) => () => void;
 }
 
 declare global {

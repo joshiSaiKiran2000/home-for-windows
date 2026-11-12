@@ -16,7 +16,6 @@ import {
   Sliders,
   Code2,
   Mic,
-  FileText,
   Settings,
   Trash2,
   Square,
@@ -333,29 +332,6 @@ export const OverlayWindow: React.FC = () => {
     window.electronAPI?.setOverlayMinimized(false);
   };
 
-  const handleUploadResume = async () => {
-    if (!window.electronAPI) return;
-    try {
-      setIsLoading(true);
-      const res = await window.electronAPI.uploadResumePdf();
-      if (res.success && res.data) {
-        setUploadMessage(
-          res.data.name
-            ? `Resume loaded: ${res.data.name}`
-            : "Resume parsed successfully!",
-        );
-        setTimeout(() => setUploadMessage(null), 3500);
-      } else if (res.error) {
-        setUploadMessage(`Error: ${res.error}`);
-        setTimeout(() => setUploadMessage(null), 3500);
-      }
-    } catch (err: any) {
-      console.error(err);
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
   const handleToggleSttProvider = async (provider: "deepgram" | "gemini") => {
     setSttProvider(provider);
     if (window.electronAPI) {
@@ -591,16 +567,9 @@ export const OverlayWindow: React.FC = () => {
           <button
             onClick={() => setIsScreenModalOpen(true)}
             className="p-1 rounded text-dark-400 hover:text-emerald-400 hover:bg-dark-700 transition-colors"
+            title="Screen Analysis"
           >
             <Monitor className="w-3.5 h-3.5" />
-          </button>
-
-          {/* Upload Resume PDF */}
-          <button
-            onClick={handleUploadResume}
-            className="p-1 rounded text-dark-400 hover:text-brand-400 hover:bg-dark-700 transition-colors"
-          >
-            <FileText className="w-3.5 h-3.5" />
           </button>
 
           {/* Clear Text / Reset Screen */}

@@ -1,12 +1,14 @@
 import { ipcMain } from 'electron';
 import { resumeService } from '../services/resume.service';
 import { storageService } from '../services/storage.service';
+import { broadcastToAllWindows } from '../main';
 import { JobDescriptionData } from '../../src/types';
 
 export function registerResumeIpc(): void {
   ipcMain.handle('resume:upload-pdf', async () => {
     try {
       const data = await resumeService.uploadAndAnalyzePdf();
+      broadcastToAllWindows('app:resume-updated', data);
       return { success: true, data };
     } catch (err: any) {
       console.error('Error handling resume upload:', err);
@@ -44,6 +46,7 @@ export function registerResumeIpc(): void {
   ipcMain.handle('context:clear', async () => {
     try {
       storageService.clearContext();
+      broadcastToAllWindows('app:context-cleared');
       return { success: true };
     } catch (err: any) {
       return { success: false, error: err.message };
