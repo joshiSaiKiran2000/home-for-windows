@@ -14,6 +14,9 @@ if (app && typeof app.setName === 'function') {
 let mainWindow: BrowserWindow | null = null;
 let overlayWindow: BrowserWindow | null = null;
 
+export const DEFAULT_OVERLAY_WIDTH = 460;
+export const DEFAULT_OVERLAY_HEIGHT = 470;
+
 const isDev = process.env.NODE_ENV !== 'production' && (!app || !app.isPackaged);
 const VITE_DEV_SERVER_URL = process.env.VITE_DEV_SERVER_URL;
 
@@ -72,8 +75,8 @@ function createOverlayWindow(): BrowserWindow {
   const display = screen.getPrimaryDisplay();
   const { width, height } = display.workAreaSize;
 
-  const overlayWidth = 460;
-  const overlayHeight = 600;
+  const overlayWidth = DEFAULT_OVERLAY_WIDTH;
+  const overlayHeight = DEFAULT_OVERLAY_HEIGHT;
   // Position in bottom-right corner with a 24px margin
   const posX = Math.max(0, width - overlayWidth - 24);
   const posY = Math.max(0, height - overlayHeight - 32);
@@ -163,7 +166,7 @@ function toggleOverlay(): void {
 }
 
 // Overlay bounds memory for minimize/expand
-let lastOverlayBounds = { width: 460, height: 600, x: 0, y: 0 };
+let lastOverlayBounds = { width: DEFAULT_OVERLAY_WIDTH, height: DEFAULT_OVERLAY_HEIGHT, x: 0, y: 0 };
 
 function setOverlayBoundsDirect(bounds: { x?: number; y?: number; width?: number; height?: number }): void {
   if (!overlayWindow || overlayWindow.isDestroyed()) return;
@@ -251,8 +254,8 @@ function registerWindowIpc(): void {
         });
         broadcastToAllWindows('app:overlay-minimized-change', true);
       } else {
-        const targetW = lastOverlayBounds.width >= 300 ? lastOverlayBounds.width : 460;
-        const targetH = lastOverlayBounds.height >= 180 ? lastOverlayBounds.height : 600;
+        const targetW = lastOverlayBounds.width >= 300 ? lastOverlayBounds.width : DEFAULT_OVERLAY_WIDTH;
+        const targetH = lastOverlayBounds.height >= 180 ? lastOverlayBounds.height : DEFAULT_OVERLAY_HEIGHT;
         const [currentX, currentY] = overlayWindow.getPosition();
         const [currentW, currentH] = overlayWindow.getSize();
 
@@ -331,8 +334,8 @@ function registerWindowIpc(): void {
       setOverlayBoundsDirect({
         x,
         y,
-        width: 460,
-        height: 600,
+        width: DEFAULT_OVERLAY_WIDTH,
+        height: DEFAULT_OVERLAY_HEIGHT,
       });
       overlayWindow.webContents.setVisualZoomLevelLimits(1, 1);
       overlayWindow.webContents.setZoomFactor(1.0);
@@ -352,7 +355,7 @@ function registerWindowIpc(): void {
   ipcMain.handle('window:set-compact', (_event, compact: boolean) => {
     if (overlayWindow && !overlayWindow.isDestroyed()) {
       const [w] = overlayWindow.getSize();
-      const targetH = compact ? 240 : 600;
+      const targetH = compact ? 240 : DEFAULT_OVERLAY_HEIGHT;
       setOverlayBoundsDirect({ width: w, height: targetH });
       broadcastToAllWindows('app:overlay-mode-change', compact);
     }
