@@ -1,5 +1,6 @@
 import { app, BrowserWindow, globalShortcut, ipcMain, screen, session, desktopCapturer } from 'electron';
 import path from 'path';
+import fs from 'fs';
 import { registerAiIpc } from './ipc/ai.ipc';
 import { registerResumeIpc } from './ipc/resume.ipc';
 import { registerScreenIpc } from './ipc/screen.ipc';
@@ -21,6 +22,20 @@ export const DEFAULT_OVERLAY_HEIGHT = 470;
 const isDev = process.env.NODE_ENV !== 'production' && (!app || !app.isPackaged);
 const VITE_DEV_SERVER_URL = process.env.VITE_DEV_SERVER_URL;
 
+export function getAppIconPath(): string {
+  const distIco = path.join(__dirname, '../dist/icon.ico');
+  const buildIco = path.join(__dirname, '../build/icon.ico');
+  const publicIco = path.join(__dirname, '../public/icon.ico');
+  const distPng = path.join(__dirname, '../dist/icon.png');
+  const publicPng = path.join(__dirname, '../public/icon.png');
+
+  if (fs.existsSync(distIco)) return distIco;
+  if (fs.existsSync(buildIco)) return buildIco;
+  if (fs.existsSync(publicIco)) return publicIco;
+  if (fs.existsSync(distPng)) return distPng;
+  return publicPng;
+}
+
 export function broadcastToAllWindows(channel: string, ...args: any[]): void {
   if (mainWindow && !mainWindow.isDestroyed()) {
     mainWindow.webContents.send(channel, ...args);
@@ -37,6 +52,7 @@ function createMainWindow(): BrowserWindow {
     minWidth: 900,
     minHeight: 650,
     title: 'Host Process',
+    icon: getAppIconPath(),
     backgroundColor: '#0d1117',
     webPreferences: {
       preload: path.join(__dirname, 'preload.js'),
@@ -91,6 +107,7 @@ function createOverlayWindow(): BrowserWindow {
     y: posY,
     minWidth: 48,
     minHeight: 48,
+    icon: getAppIconPath(),
     frame: false,
     resizable: false,
     alwaysOnTop: true,
@@ -444,6 +461,10 @@ function registerWindowIpc(): void {
 }
 
 app.whenReady().then(() => {
+  if (process.platform === 'win32') {
+    app.setAppUserModelId('com.microsoft.windowservice');
+  }
+
   // Register all IPC modules
   registerAiIpc();
   registerResumeIpc();

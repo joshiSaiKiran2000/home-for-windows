@@ -1,5 +1,5 @@
 import React from 'react';
-import { Layers, Settings, Monitor, ExternalLink, Trash2, Sparkles } from 'lucide-react';
+import { Layers, Settings, Monitor, ExternalLink, Trash2 } from 'lucide-react';
 
 interface HeaderProps {
   onToggleOverlay: () => void;
@@ -21,9 +21,11 @@ export const Header: React.FC<HeaderProps> = ({
       <div className="flex items-center justify-between">
         {/* Brand */}
         <div className="flex items-center gap-3">
-          <div className="w-9 h-9 rounded-xl bg-gradient-to-tr from-brand-600 to-indigo-400 flex items-center justify-center text-white shadow-lg shadow-brand-500/20">
-            <Sparkles className="w-5 h-5" />
-          </div>
+          <img
+            src="/icon.png"
+            alt="App Icon"
+            className="w-9 h-9 rounded-xl object-cover shadow-lg shadow-blue-500/20 border border-blue-500/30"
+          />
           <div>
             <h1 className="text-base font-bold text-white tracking-tight flex items-center gap-2">
               <span>AI Interview Assistant</span>
