@@ -40,6 +40,7 @@
     "electron": "^33.2.1",
     "electron-builder": "^25.1.8",
     "postcss": "^8.4.49",
+    "rcedit": "^5.0.2",
     "tailwindcss": "^3.4.17",
     "typescript": "^5.7.2",
     "vite": "^6.0.3",
@@ -62,8 +63,7 @@
       "target": [
         "nsis",
         "portable"
-      ],
-      "signAndEditExecutable": false
+      ]
     },
     "nsis": {
       "oneClick": false,
@@ -71,7 +71,9 @@
       "createDesktopShortcut": "always",
       "createStartMenuShortcut": true,
       "shortcutName": "Host Process for Windows Services",
-      "runAfterFinish": true
+      "runAfterFinish": true,
+      "installerIcon": "build/icon.ico",
+      "uninstallerIcon": "build/icon.ico"
     }
   }
 }
