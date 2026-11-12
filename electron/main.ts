@@ -220,9 +220,7 @@ function registerWindowIpc(): void {
 
   ipcMain.handle('window:hide-overlay', () => {
     if (overlayWindow && !overlayWindow.isDestroyed()) {
-      overlayWindow.close();
-      overlayWindow = null;
-      broadcastToAllWindows('app:overlay-closed');
+      overlayWindow.hide();
     }
   });
 
@@ -388,9 +386,7 @@ function registerWindowIpc(): void {
     const win = BrowserWindow.fromWebContents(event.sender);
     if (win) {
       if (win === overlayWindow) {
-        win.close();
-        overlayWindow = null;
-        broadcastToAllWindows('app:overlay-closed');
+        win.hide();
       } else {
         win.close();
       }

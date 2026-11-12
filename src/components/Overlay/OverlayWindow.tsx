@@ -795,11 +795,11 @@ export const OverlayWindow: React.FC = () => {
             <Minus className="w-3.5 h-3.5" />
           </button>
 
-          {/* Close Overlay */}
+          {/* Close / Hide */}
           <button
-            onClick={() => (window.electronAPI?.closeOverlay ? window.electronAPI.closeOverlay() : window.electronAPI?.closeWindow())}
+            onClick={() => window.electronAPI?.hideOverlay()}
             className="p-1 rounded text-dark-400 hover:text-rose-400 hover:bg-dark-700 transition-colors"
-            title="Stop / Close Overlay"
+            title="Hide Overlay (Ctrl + Shift + Space to restore)"
           >
             <X className="w-3.5 h-3.5" />
           </button>
