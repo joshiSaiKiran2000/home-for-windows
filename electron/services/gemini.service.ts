@@ -4,60 +4,108 @@ import { AnswerResponse, JobDescriptionData, ResumeData } from '../../src/types'
 
 export const SYSTEM_INSTRUCTION = `You are my personal technical interview assistant.
 
-Your #1 priority is to give answers in VERY SIMPLE, SHORT, EVERYDAY ENGLISH that is easy to understand and speak out loud in an interview.
+Your goal is to give top-tier, practical, interview-ready answers tailored to the exact category of the question:
 
-ANSWER RULES FOR TECHNICAL & CONCEPTUAL QUESTIONS:
-- Keep the definition to exactly 2 to 3 very simple sentences.
-- Use plain, everyday words (no complicated words, no textbook jargon).
-- Sentence 1: What it is used for in plain English.
-- Sentence 2: How it works simply.
-- Sentence 3: Why it helps or why we use it.
-- Follow immediately with a short, simple practical code example (2 to 4 lines).
-- Keep it concise, direct, and simple.
+1. FOR INTEGRATION, SETUP, AND "HOW-TO" QUESTIONS (e.g. "How to integrate Firebase in React Native", "How to set up Redux", "How to connect MongoDB"):
+- Provide a COMPLETE, practical, step-by-step integration guide. DO NOT give a vague 2-line summary or dummy empty config objects.
+- Structure clearly:
+  - Brief Overview: 1-2 sentences on what the integration accomplishes.
+  - Step 1: Install Dependencies (exact CLI commands e.g. \`npm install @react-native-firebase/app @react-native-firebase/auth\`).
+  - Step 2: Platform Configuration (Android \`google-services.json\` & build.gradle, iOS \`GoogleService-Info.plist\` & \`pod install\`, environment variables).
+  - Step 3: Initialization & Setup (real, working code without dummy empty brackets \`const config = {};\`).
+  - Step 4: Practical Usage Example (realistic component or service code showing real methods in action).
+  - Step 5: Key Interview Talking Points (2-3 bullet points of best practices, caveats, or optimization tips to mention verbally).
 
-Example 1 (Question: "What is an object?"):
-An object is used to store related information together in the form of key-value pairs. Each key has a value. It helps us organize data about something in one place.
-
-\`\`\`javascript
-let person = {
-  name: "John",
-  age: 25
-};
-\`\`\`
-
-Example 2 (Question: "What is an array?"):
-An array is used to store a list of multiple items in a single variable. Each item is identified by an index number, starting from zero. It helps us keep ordered data together in one place.
-
-\`\`\`javascript
-let fruits = ["Apple", "Banana", "Mango", "Orange"];
-\`\`\`
-
-ANSWER RULES FOR CODING QUESTIONS:
+2. FOR ALGORITHM & CODING CHALLENGES (e.g. "Find largest number in array", "Reverse a string", "Debounce function"):
 - Directly output the simplest, most beginner-friendly JavaScript code.
-- Declare a sample input variable at the top (e.g. let arr = [...];).
-- Use basic variables and simple loops (prefer for loops, while loops, if/else).
-- Avoid complex one-liners, reduce, or advanced tricks when a simple loop works.
-- End with a console.log showing the result and a comment with the answer (e.g. console.log(largest); // 67).
-- No long paragraphs, multi-step tutorials, or conversational pleasantries.
+- Declare a sample input variable at the top (e.g. \`let arr = [1, 4, 5, 67, 8, 9];\`).
+- Use basic variables and simple loops (prefer for loops, while loops, if/else). Avoid complex one-liners, reduce, or advanced tricks when a simple loop works.
+- End with a console.log showing the result and a comment with the answer (e.g. \`console.log(largest); // 67\`).
+- No long introductory text, multi-step tutorials, or conversational pleasantries.
 
-Example (Question: "Find the largest number in an array"):
-\`\`\`javascript
-let arr = [1, 4, 5, 67, 8, 9];
+3. FOR SHORT CONCEPTUAL & DEFINITION QUESTIONS (e.g. "What is an object?", "What is an array?", "What is closure?"):
+- Keep the definition to exactly 2 to 3 very simple sentences in plain everyday English:
+  - Sentence 1: What it is used for in plain English.
+  - Sentence 2: How it works simply.
+  - Sentence 3: Why it helps or why we use it.
+- Follow immediately with a short, simple practical code example (2 to 4 lines).
+- Keep it concise, direct, and easy to speak out loud.
 
-let largest = arr[0];
-
-for (let i = 1; i < arr.length; i++) {
-    if (arr[i] > largest) {
-        largest = arr[i];
-    }
-}
-
-console.log(largest); // 67
-\`\`\`
+4. FOR BEHAVIORAL & RESUME QUESTIONS (e.g. "Tell me about yourself", "Tell me about a challenging project"):
+- Speak in the first person ("In my previous experience...", "I built...").
+- Ground the answer in the candidate's uploaded resume, skills, and projects when available.
+- Use the STAR framework (Situation, Task, Action, Result) in a natural, conversational way.
 
 GENERAL STYLE:
-- Make every answer simple, natural, and easy to explain in an interview.
-- Never use unnecessarily complicated vocabulary.`;
+- Make every answer natural, practical, and easy to explain in an interview.
+- Never use unnecessarily complicated vocabulary or empty placeholders like \`const config = {};\`.`;
+
+export type QuestionCategory = 'integration' | 'algorithm' | 'concept' | 'behavioral' | 'general';
+
+export function classifyQuestion(question: string): QuestionCategory {
+  const q = (question || '').toLowerCase().trim();
+
+  // 1. Integration / Setup / "How-to" / Implementation / Architecture Guide
+  const integrationPatterns = [
+    /\b(integrate|integration|integrating)\b/i,
+    /\b(set\s*up|setup|configuring|configure|configuration)\b/i,
+    /\b(install|installing|connect|connecting|connection)\b/i,
+    /\b(deploy|deploying|deployment|pipeline|ci\/?cd|dockerize|docker)\b/i,
+    /\b(architecture\s+of|lifecycle\s+of|flow\s+of|workflow\s+of)\b/i,
+    /\b(steps\s+to|guide\s+to)\b/i,
+    /^(how\s+to|how\s+do\s+i|how\s+can\s+i|how\s+would\s+you)\b/i,
+  ];
+
+  const hasIntegrationKeyword = integrationPatterns.some((pattern) => pattern.test(q));
+
+  // 2. Pure Algorithm / Data Structure Coding Challenges
+  const algoPatterns = [
+    /\b(find\s+)?(largest|smallest|maximum|minimum)\b/i,
+    /\b(reverse\s+(a\s+)?(string|array|linked\s*list|number|words|list))\b/i,
+    /\b(palindrome|anagram|fibonacci|two\s*sum|three\s*sum|fizz\s*buzz)\b/i,
+    /\b(debounce|throttle|currying|flatten\s+(array|object))\b/i,
+    /\b(binary\s*search|linked\s*list|merge\s*sort|quick\s*sort|bubble\s*sort)\b/i,
+    /\b(remove\s+duplicates|find\s+duplicate|missing\s+number)\b/i,
+    /\b(valid\s+parentheses|roman\s+to\s+integer|climbing\s+stairs)\b/i,
+    /^(write|implement|create)\s+(a\s+)?(function|program|algorithm|code)\s+to\b/i,
+  ];
+
+  const isAlgo = algoPatterns.some((pattern) => pattern.test(q));
+
+  if (isAlgo && !hasIntegrationKeyword) {
+    return 'algorithm';
+  }
+
+if (hasIntegrationKeyword) {
+  return 'integration';
+}
+
+// 3. Behavioral / Resume / Experience Questions
+const behavioralPatterns = [
+  /\b(tell\s+me\s+about\s+yourself|introduce\s+yourself|walk\s+me\s+through\s+your\s+resume)\b/i,
+  /\b(tell\s+me\s+about\s+a\s+(project|time|challenge|conflict|bug|failure|success))\b/i,
+  /\b(what\s+was\s+your\s+role|your\s+responsibilities|experience\s+with)\b/i,
+  /\b(strengths\s+and\s+weaknesses|why\s+should\s+we\s+hire\s+you)\b/i,
+];
+
+if (behavioralPatterns.some((pattern) => pattern.test(q))) {
+  return 'behavioral';
+}
+
+// 4. Conceptual / Definition Questions
+const conceptPatterns = [
+  /^(what\s+is|what\s+are|what\s+do\s+you\s+mean\s+by)\b/i,
+  /^(explain|describe|define)\b/i,
+  /\b(difference\s+between|versus|vs\.?)\b/i,
+  /\b(why\s+do\s+we\s+use|pros\s+and\s+cons|advantages\s+of)\b/i,
+];
+
+if (conceptPatterns.some((pattern) => pattern.test(q))) {
+  return 'concept';
+}
+
+return 'general';
+}
 
 export class GeminiService {
   private getClient(apiKey?: string): GoogleGenerativeAI {
@@ -106,168 +154,174 @@ export class GeminiService {
         continue;
       }
 
-filtered.push(rawLine);
+      filtered.push(rawLine);
     }
 
-return filtered
-  .join('\n')
-  .replace(/[ \t]+$/gm, '')
-  .replace(/\n{3,}/g, '\n\n')
-  .trim();
+    return filtered
+      .join('\n')
+      .replace(/[ \t]+$/gm, '')
+      .replace(/\n{3,}/g, '\n\n')
+      .trim();
   }
 
-/**
- * For coding questions, extract code blocks, strip all comments and tests, and format directly.
- */
-cleanCodingSolution(text: string): string {
-  const codeBlockRegex = /```([a - zA - Z0 - 9] *) \n([\s\S] *?)```/g;
-  const matches = [...text.matchAll(codeBlockRegex)];
+    /**
+     * For coding questions, extract code blocks, strip all comments and tests, and format directly.
+     */
+    cleanCodingSolution(text: string): string {
+      const codeBlockRegex = /```([a-zA-Z0-9_\-]*)\r?\n([\s\S]*?)```/g;
+      const matches = [...text.matchAll(codeBlockRegex)];
 
-  if (matches.length > 0) {
-    const cleanedBlocks = matches.map(m => {
-      const lang = m[1] || 'javascript';
-      const cleaned = this.stripCommentsAndTests(m[2]);
-      return '```' + lang + '\n' + cleaned + '\n```';
-    });
+        if (matches.length > 0) {
+          const cleanedBlocks = matches.map(m => {
+            const lang = m[1] || 'javascript';
+            const cleaned = this.stripCommentsAndTests(m[2]);
+            return '```' + lang + '\n' + cleaned + '\n```';
+          });
 
-    return cleanedBlocks.join('\n\n');
-  }
+          return cleanedBlocks.join('\n\n');
+        }
 
-  const cleaned = this.stripCommentsAndTests(text);
-  return '```javascript\n' + cleaned + '\n```';
-}
+        const cleaned = this.stripCommentsAndTests(text);
+        return '```javascript\n' + cleaned + '\n```';
+      }
 
-/**
- * Determine if a question is a coding question / challenge.
- */
-isCodingQuestion(question: string, responseText: string): boolean {
-  const q = question.toLowerCase();
+        /**
+         * Determine if a question is a coding question / challenge.
+         */
+        isCodingQuestion(question: string, _responseText ?: string): boolean {
+          return classifyQuestion(question) === 'algorithm';
+        }
 
-  const isExplanationOnly =
-    (q.startsWith('explain ') || q.startsWith('what is ') || q.startsWith('what are ') || q.startsWith('difference between ')) &&
-    !q.includes('write') &&
-    !q.includes('implement') &&
-    !q.includes('code');
+        /**
+         * Sanitize AI answer to ensure coding solutions are cleanly displayed without comments or test runs,
+         * while preserving full multi-step explanations, commands, and code blocks for integration and conceptual guides.
+         */
+        sanitizeAnswer(question: string, responseText: string): { isCoding: boolean; cleanedAnswer: string } {
+          const category = classifyQuestion(question);
 
-  if (isExplanationOnly) {
-    return false;
-  }
+          if (category === 'algorithm') {
+            return {
+              isCoding: true,
+              cleanedAnswer: this.cleanCodingSolution(responseText),
+            };
+          }
 
-  const codingKeywords = [
-    'write code',
-    'write a function',
-    'function to',
-    'write a program',
-    'implement',
-    'algorithm',
-    'find largest',
-    'find smallest',
-    'find maximum',
-    'find minimum',
-    'reverse',
-    'palindrome',
-    'anagram',
-    'fibonacci',
-    'two sum',
-    'debounce',
-    'throttle',
-    'flatten',
-    'sort',
-    'binary search',
-    'linked list',
-    'coding question'
-  ];
+          const codeBlockRegex = /```([a-zA-Z0-9_\-]*)\r?\n([\s\S]*?)```/g;
+          const cleanedAnswer = responseText.replace(codeBlockRegex, (_match, lang, code) => {
+            const cleaned = category === 'concept' ? this.stripCommentsAndTests(code) : code.trim();
+            return '```' + (lang || 'javascript') + '\n' + cleaned + '\n```';
+          });
 
-  if (codingKeywords.some(kw => q.includes(kw))) {
-    return true;
-  }
-
-  if (
-    (q.includes('code') || q.includes('function') || q.includes('array') || q.includes('how to')) &&
-    (responseText.includes('```javascript') || responseText.includes('```js') || responseText.includes('```typescript'))
-  ) {
-  return true;
-}
-
-return false;
-}
-
-/**
- * Sanitize AI answer to ensure coding solutions are cleanly displayed without comments or test runs.
- */
-sanitizeAnswer(question: string, responseText: string): { isCoding: boolean; cleanedAnswer: string } {
-  const isCoding = this.isCodingQuestion(question, responseText);
-  if (isCoding) {
-    return {
-      isCoding: true,
-      cleanedAnswer: this.cleanCodingSolution(responseText),
-    };
-  }
-
-  const codeBlockRegex = /```([a-zA-Z0-9]*)\n([\s\S]*?)```/g;
-  const cleanedAnswer = responseText.replace(codeBlockRegex, (_match, lang, code) => {
-    return '```' + (lang || 'javascript') + '\n' + this.stripCommentsAndTests(code) + '\n```';
-  });
-
-  return {
-    isCoding: responseText.includes('```'),
-    cleanedAnswer,
-  };
-}
+            return {
+              isCoding: false,
+              cleanedAnswer,
+            };
+          }
 
   /**
    * Generate an interview answer based on Question, Resume, and Job Description.
    */
   async generateInterviewAnswer(params: {
-  question: string;
-  source?: 'manual' | 'audio' | 'screen';
-}): Promise < AnswerResponse > {
-  const ai = this.getClient();
-  const model = ai.getGenerativeModel({
-    model: this.getModelName(),
-    systemInstruction: SYSTEM_INSTRUCTION,
-  });
+          question: string;
+          source?: 'manual' | 'audio' | 'screen';
+        }): Promise < AnswerResponse > {
+          const ai = this.getClient();
+          const model = ai.getGenerativeModel({
+            model: this.getModelName(),
+            systemInstruction: SYSTEM_INSTRUCTION,
+          });
 
-  const resume = storageService.getResume();
-  const jd = storageService.getJobDescription();
+          const resume = storageService.getResume();
+          const jd = storageService.getJobDescription();
 
-  const isLikelyCoding =
-    /write|function|algorithm|implement|code|program|solve|array|string|find|reverse|sort|duplicate|palindrome/i.test(params.question);
+          const category = classifyQuestion(params.question);
 
-  const formatInstruction = isLikelyCoding
-    ?'\nLANGUAGE & FORMAT INSTRUCTION: Output ONLY the simplest, beginner-friendly JavaScript code. Use plain let variables, a basic loop, and end with console.log showing the result with an output comment (e.g. console.log(largest); // 67). No long explanations.'
-    : '\nLANGUAGE & FORMAT INSTRUCTION: Answer in exactly 2-3 short, very simple sentences: (1) what it is used for, (2) how it works, (3) why it helps (e.g. "An object is used to store related information together in the form of key-value pairs. Each key has a value. It helps us organize data about something in one place."), followed immediately by a short 2-3 line code example.';
+          let formatInstruction = '';
+          switch(category) {
+      case 'integration':
+          formatInstruction = `
+LANGUAGE & FORMAT INSTRUCTION:
+This is an INTEGRATION / SETUP / HOW-TO question.
+Provide a COMPLETE, practical, step-by-step integration guide. DO NOT give a vague 2-line summary or empty config objects.
+Structure your answer clearly:
+1. Brief Overview: 1-2 sentences on what this integration achieves.
+2. Step 1: Install Dependencies (exact npm/yarn/pnpm commands with full package names).
+3. Step 2: Platform Configuration (detail configuration files, Android google-services.json & build.gradle, iOS GoogleService-Info.plist & pod install, env variables).
+4. Step 3: Initialization & Setup (complete, valid code without empty dummy brackets).
+5. Step 4: Practical Usage Example (realistic React Native / frontend / backend component or hook code showing real methods in action).
+6. Key Interview Talking Points: 2-3 concise bullet points of best practices, caveats, or optimization tips to mention verbally.`;
+          break;
 
-  const promptContext = [
-    '### CANDIDATE CONTEXT:',
-    resume
-      ? `RESUME DETAILS:\nName: ${resume.name || 'Candidate'}\nTechnical Skills: ${resume.skills.join(', ')}\nLanguages: ${resume.languages.join(', ')}\nFrameworks: ${resume.frameworks.join(', ')}\nWork Experience:\n${JSON.stringify(resume.experience, null, 2)}\nProjects:\n${JSON.stringify(resume.projects, null, 2)}`
-      : 'RESUME: (No resume provided yet. Answer generally but stay beginner-friendly and realistic.)',
-    '',
-    jd
-      ? `JOB DESCRIPTION CONTEXT:\nRequired Skills: ${jd.requiredSkills.join(', ')}\nResponsibilities: ${jd.responsibilities.join('; ')}\nTools: ${jd.toolsAndTech.join(', ')}`
-      : 'JOB DESCRIPTION: (None specified)',
-    '',
-    `### INTERVIEW QUESTION:`,
-    `"${params.question}"`,
-    '',
-    'Provide your response following all SYSTEM INSTRUCTIONS. Keep it direct, natural, and simple.' + formatInstruction
-  ].join('\n');
+          case 'algorithm':
+          formatInstruction = `
+LANGUAGE & FORMAT INSTRUCTION:
+This is an ALGORITHM / CODING CHALLENGE.
+Output ONLY the simplest, beginner-friendly JavaScript code inside a single markdown code block (\`\`\`javascript ... \`\`\`).
+- Declare a sample input variable at the top (e.g. let arr = [1, 4, 5, 67, 8, 9];).
+- Use basic variables and simple loops (for, while, if/else). Avoid complex one-liners, reduce, or advanced tricks when a simple loop works.
+- End with a console.log showing the result and a comment with the answer (e.g. console.log(largest); // 67).
+- No long introductory text, multi-step tutorials, or conversational pleasantries.`;
+          break;
 
-  const result = await model.generateContent(promptContext);
-  const responseText = result.response.text();
+          case 'concept':
+          formatInstruction = `
+LANGUAGE & FORMAT INSTRUCTION:
+This is a CONCEPTUAL / DEFINITION question.
+Answer in exactly 2 to 3 very simple sentences in plain everyday English:
+- Sentence 1: What it is used for in plain English.
+- Sentence 2: How it works simply.
+- Sentence 3: Why it helps or why we use it.
+Follow immediately with a short, simple practical code example (2 to 4 lines).
+Keep it concise, direct, and easy to speak out loud.`;
+          break;
 
-  const { isCoding, cleanedAnswer } = this.sanitizeAnswer(params.question, responseText);
+          case 'behavioral':
+          formatInstruction = `
+LANGUAGE & FORMAT INSTRUCTION:
+This is an EXPERIENCE / BEHAVIORAL question.
+- Speak in the first person ("In my previous experience...", "I built...").
+- Ground the answer in the candidate's uploaded resume, skills, and projects when available.
+- Use the STAR framework (Situation, Task, Action, Result) in a natural, conversational way.`;
+          break;
 
-  return {
-    id: 'ans-' + Date.now() + '-' + Math.random().toString(36).substr(2, 5),
-    question: params.question,
-    answer: cleanedAnswer,
-    source: params.source || 'manual',
-    timestamp: Date.now(),
-    isCodingQuestion: isCoding,
-  };
+      default:
+    formatInstruction = `
+LANGUAGE & FORMAT INSTRUCTION:
+Answer in clear, simple English that is natural and easy to explain out loud in an interview.
+Provide practical, complete explanations and realistic code examples where applicable.`;
+  break;
 }
+
+const promptContext = [
+  '### CANDIDATE CONTEXT:',
+  resume
+    ? `RESUME DETAILS:\nName: ${resume.name || 'Candidate'}\nTechnical Skills: ${resume.skills.join(', ')}\nLanguages: ${resume.languages.join(', ')}\nFrameworks: ${resume.frameworks.join(', ')}\nWork Experience:\n${JSON.stringify(resume.experience, null, 2)}\nProjects:\n${JSON.stringify(resume.projects, null, 2)}`
+    : 'RESUME: (No resume provided yet. Answer generally but stay beginner-friendly and realistic.)',
+  '',
+  jd
+    ? `JOB DESCRIPTION CONTEXT:\nRequired Skills: ${jd.requiredSkills.join(', ')}\nResponsibilities: ${jd.responsibilities.join('; ')}\nTools: ${jd.toolsAndTech.join(', ')}`
+    : 'JOB DESCRIPTION: (None specified)',
+  '',
+  `### INTERVIEW QUESTION:`,
+  `"${params.question}"`,
+  '',
+  'Provide your response following all SYSTEM INSTRUCTIONS. Keep it direct, natural, and simple.' + formatInstruction
+].join('\n');
+
+const result = await model.generateContent(promptContext);
+const responseText = result.response.text();
+
+const { isCoding, cleanedAnswer } = this.sanitizeAnswer(params.question, responseText);
+
+return {
+  id: 'ans-' + Date.now() + '-' + Math.random().toString(36).substr(2, 5),
+  question: params.question,
+  answer: cleanedAnswer,
+  source: params.source || 'manual',
+  timestamp: Date.now(),
+  isCodingQuestion: isCoding,
+};
+  }
 
   /**
    * Analyze extracted resume text to extract structured information.

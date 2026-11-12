@@ -461,7 +461,7 @@ export const OverlayWindow: React.FC = () => {
 
   // Helper for rendering markdown & code
   const renderFormattedAnswer = (text: string) => {
-    const codeBlockRegex = /```([a-zA-Z0-9]*)\n([\s\S]*?)```/g;
+    const codeBlockRegex = /```([a-zA-Z0-9_\-]*)\r?\n([\s\S]*?)```/g;
     const parts: React.ReactNode[] = [];
     let lastIndex = 0;
     let match: RegExpExecArray | null;
@@ -709,66 +709,66 @@ export const OverlayWindow: React.FC = () => {
           </div>
         )}
 
-          { activeAnswer && (
-            <div className="space-y-2.5">
-              {/* Question Bar */}
-              <div
-                style={{
-                  backgroundColor: `rgba(22, 27, 34, ${Math.min(1, Math.max(0.3, opacity + 0.08))})`,
-                  borderColor: `rgba(48, 54, 61, ${Math.min(1, Math.max(0.25, opacity + 0.15))})`,
-                }}
-                className="flex items-start justify-between gap-2 p-2.5 rounded-xl border"
-              >
-                <div className="space-y-0.5">
-                  <span className="text-[10px] font-semibold uppercase tracking-wider text-brand-400">
-                    {activeAnswer.source === "screen"
-                      ? "Screen Question"
-                      : activeAnswer.source === "audio"
-                        ? "Spoken Question"
-                        : "Prompt"}
-                  </span>
-                  <p className="text-xs font-semibold text-white leading-snug">
-                    {activeAnswer.question}
-                  </p>
-                </div>
-
-                {/* Actions */}
-                <div className="no-drag flex items-center gap-1 shrink-0">
-                  <button
-                    onClick={handleRegenerate}
-                    disabled={isLoading}
-                    className="p-1.5 rounded-lg text-dark-400 hover:text-white hover:bg-dark-700 transition-colors"
-                  >
-                    <RotateCw
-                      className={`w-3.5 h-3.5 ${isLoading ? "animate-spin" : ""}`}
-                    />
-                  </button>
-                  <button
-                    onClick={handleCopy}
-                    className="flex items-center gap-1 px-2 py-1 rounded-lg text-[11px] font-medium bg-dark-700 hover:bg-dark-600 text-dark-200 hover:text-white transition-colors"
-                  >
-                    {copied ? (
-                      <Check className="w-3 h-3 text-emerald-400" />
-                    ) : (
-                      <Copy className="w-3 h-3" />
-                    )}
-                    <span>{copied ? "Copied" : "Copy"}</span>
-                  </button>
-                  <button
-                    onClick={handleClearText}
-                    className="flex items-center gap-1 px-2 py-1 rounded-lg text-[11px] font-medium bg-dark-700 hover:bg-rose-950/50 hover:text-rose-300 text-dark-300 transition-colors"
-                  >
-                    <Trash2 className="w-3 h-3 text-dark-400" />
-                    <span>Clear</span>
-                  </button>
-                </div>
+        {activeAnswer && (
+          <div className="space-y-2.5">
+            {/* Question Bar */}
+            <div
+              style={{
+                backgroundColor: `rgba(22, 27, 34, ${Math.min(1, Math.max(0.3, opacity + 0.08))})`,
+                borderColor: `rgba(48, 54, 61, ${Math.min(1, Math.max(0.25, opacity + 0.15))})`,
+              }}
+              className="flex items-start justify-between gap-2 p-2.5 rounded-xl border"
+            >
+              <div className="space-y-0.5">
+                <span className="text-[10px] font-semibold uppercase tracking-wider text-brand-400">
+                  {activeAnswer.source === "screen"
+                    ? "Screen Question"
+                    : activeAnswer.source === "audio"
+                      ? "Spoken Question"
+                      : "Prompt"}
+                </span>
+                <p className="text-xs font-semibold text-white leading-snug">
+                  {activeAnswer.question}
+                </p>
               </div>
 
-              {/* Answer Body */}
-              <div className="text-xs text-dark-100 font-medium leading-relaxed font-sans pr-1">
-                {renderFormattedAnswer(activeAnswer.answer)}
+              {/* Actions */}
+              <div className="no-drag flex items-center gap-1 shrink-0">
+                <button
+                  onClick={handleRegenerate}
+                  disabled={isLoading}
+                  className="p-1.5 rounded-lg text-dark-400 hover:text-white hover:bg-dark-700 transition-colors"
+                >
+                  <RotateCw
+                    className={`w-3.5 h-3.5 ${isLoading ? "animate-spin" : ""}`}
+                  />
+                </button>
+                <button
+                  onClick={handleCopy}
+                  className="flex items-center gap-1 px-2 py-1 rounded-lg text-[11px] font-medium bg-dark-700 hover:bg-dark-600 text-dark-200 hover:text-white transition-colors"
+                >
+                  {copied ? (
+                    <Check className="w-3 h-3 text-emerald-400" />
+                  ) : (
+                    <Copy className="w-3 h-3" />
+                  )}
+                  <span>{copied ? "Copied" : "Copy"}</span>
+                </button>
+                <button
+                  onClick={handleClearText}
+                  className="flex items-center gap-1 px-2 py-1 rounded-lg text-[11px] font-medium bg-dark-700 hover:bg-rose-950/50 hover:text-rose-300 text-dark-300 transition-colors"
+                >
+                  <Trash2 className="w-3 h-3 text-dark-400" />
+                  <span>Clear</span>
+                </button>
               </div>
             </div>
+
+            {/* Answer Body */}
+            <div className="text-xs text-dark-100 font-medium leading-relaxed font-sans pr-1">
+              {renderFormattedAnswer(activeAnswer.answer)}
+            </div>
+          </div>
         )}
       </div>
 

@@ -59,7 +59,7 @@ export const AnswerCard: React.FC<AnswerCardProps> = ({
 
   // Helper to parse answer into markdown code blocks and paragraphs
   const renderFormattedAnswer = (text: string) => {
-    const codeBlockRegex = /```([a-zA-Z0-9]*)\n([\s\S]*?)```/g;
+    const codeBlockRegex = /```([a-zA-Z0-9_\-]*)\r?\n([\s\S]*?)```/g;
     const parts: React.ReactNode[] = [];
     let lastIndex = 0;
     let match: RegExpExecArray | null;
@@ -106,9 +106,8 @@ export const AnswerCard: React.FC<AnswerCardProps> = ({
 
   return (
     <div
-      className={`rounded-xl border border-dark-700 bg-dark-800/80 backdrop-blur-md transition-all shadow-sm ${
-        compact ? "p-3" : "p-5"
-      }`}
+      className={`rounded-xl border border-dark-700 bg-dark-800/80 backdrop-blur-md transition-all shadow-sm ${compact ? "p-3" : "p-5"
+        }`}
     >
       {/* Header */}
       <div className="flex items-start justify-between gap-2 pb-2 mb-3 border-b border-dark-700/60">
