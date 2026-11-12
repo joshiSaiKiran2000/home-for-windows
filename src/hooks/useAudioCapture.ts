@@ -9,22 +9,86 @@ export function useAudioCapture(onQuestionDetected?: (question: string) => void)
 
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const streamRef = useRef<MediaStream | null>(null);
+  const audioContextRef = useRef<AudioContext | null>(null);
+  const rawStreamsRef = useRef<MediaStream[]>([]);
   const intervalRef = useRef<any>(null);
 
   const startListening = useCallback(async () => {
     try {
       setAudioState(prev => ({ ...prev, status: 'listening', errorMessage: undefined }));
 
-      // Request microphone / audio permission
-      const stream = await navigator.mediaDevices.getUserMedia({
-        audio: {
-          echoCancellation: true,
-          noiseSuppression: true,
-          autoGainControl: true,
-        },
-      });
+      // Fetch user settings to check preferred audio source ('both' | 'system' | 'mic')
+      const settingsRes = await window.electronAPI?.getSettings();
+      const audioSource = settingsRes?.data?.audioSource || 'both';
 
-      streamRef.current = stream;
+      let systemStream: MediaStream | null = null;
+      let micStream: MediaStream | null = null;
+      let finalStream: MediaStream | null = null;
+      rawStreamsRef.current = [];
+
+      // 1. Capture system loopback audio (captures interviewer speech in headphones from Meet, Zoom, Teams)
+      if (audioSource === 'both' || audioSource === 'system') {
+        try {
+          const displayStream = await navigator.mediaDevices.getDisplayMedia({
+            video: true,
+            audio: true,
+          });
+          // Stop video track immediately since only audio is needed
+          displayStream.getVideoTracks().forEach((track) => track.stop());
+          const audioTracks = displayStream.getAudioTracks();
+          if (audioTracks.length > 0) {
+            systemStream = new MediaStream(audioTracks);
+            rawStreamsRef.current.push(systemStream);
+          }
+        } catch (loopbackErr) {
+          console.warn('System loopback capture not granted or unavailable, falling back to mic:', loopbackErr);
+        }
+      }
+
+      // 2. Capture microphone audio
+      if (audioSource === 'both' || audioSource === 'mic' || !systemStream) {
+        try {
+          micStream = await navigator.mediaDevices.getUserMedia({
+            audio: {
+              echoCancellation: true,
+              noiseSuppression: true,
+              autoGainControl: true,
+            },
+          });
+          rawStreamsRef.current.push(micStream);
+        } catch (micErr) {
+          console.warn('Microphone capture not available:', micErr);
+        }
+      }
+
+      // 3. Combine both streams if available, or pick the available one
+      if (systemStream && micStream) {
+        try {
+          const AudioContextClass = window.AudioContext || (window as any).webkitAudioContext;
+          const ctx = new AudioContextClass();
+          audioContextRef.current = ctx;
+          const dest = ctx.createMediaStreamDestination();
+
+          const sysSource = ctx.createMediaStreamSource(systemStream);
+          sysSource.connect(dest);
+
+          const micSource = ctx.createMediaStreamSource(micStream);
+          micSource.connect(dest);
+
+          finalStream = dest.stream;
+        } catch (mixErr) {
+          console.warn('Mixing audio streams failed, using system audio:', mixErr);
+          finalStream = systemStream || micStream;
+        }
+      } else {
+        finalStream = systemStream || micStream;
+      }
+
+      if (!finalStream || finalStream.getAudioTracks().length === 0) {
+        throw new Error('No audio available. Please verify microphone or system sound permissions.');
+      }
+
+      streamRef.current = finalStream;
 
       // Determine mimeType
       let mimeType = 'audio/webm;codecs=opus';
@@ -32,7 +96,7 @@ export function useAudioCapture(onQuestionDetected?: (question: string) => void)
         mimeType = MediaRecorder.isTypeSupported('audio/webm') ? 'audio/webm' : 'audio/mp4';
       }
 
-      const recorder = new MediaRecorder(stream, { mimeType });
+      const recorder = new MediaRecorder(finalStream, { mimeType });
       mediaRecorderRef.current = recorder;
 
       recorder.ondataavailable = async (e) => {
@@ -67,8 +131,8 @@ export function useAudioCapture(onQuestionDetected?: (question: string) => void)
         }
       };
 
-      // Slice audio in 7-second chunks to analyze speech cadence & detect questions
-      recorder.start(7000);
+      // Slice audio in 5-second chunks for responsive speech cadence & question detection
+      recorder.start(5000);
 
       setAudioState({
         isListening: true,
@@ -76,9 +140,9 @@ export function useAudioCapture(onQuestionDetected?: (question: string) => void)
       });
     } catch (err: any) {
       console.error('Audio capture error:', err);
-      let msg = err.message || 'Microphone access denied or unavailable.';
+      let msg = err.message || 'Audio access denied or unavailable.';
       if (err.name === 'NotAllowedError') {
-        msg = 'Microphone permission was denied. Please allow microphone access in Windows privacy settings.';
+        msg = 'Audio permission was denied. Please allow audio access in Windows privacy settings.';
       }
       setAudioState({
         isListening: false,
@@ -95,6 +159,16 @@ export function useAudioCapture(onQuestionDetected?: (question: string) => void)
       }
       if (streamRef.current) {
         streamRef.current.getTracks().forEach((track) => track.stop());
+      }
+      rawStreamsRef.current.forEach((s) => {
+        try {
+          s.getTracks().forEach((t) => t.stop());
+        } catch {}
+      });
+      rawStreamsRef.current = [];
+      if (audioContextRef.current) {
+        audioContextRef.current.close().catch(() => {});
+        audioContextRef.current = null;
       }
       if (intervalRef.current) {
         clearInterval(intervalRef.current);

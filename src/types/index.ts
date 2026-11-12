@@ -50,6 +50,7 @@ export interface AppSettings {
   geminiModel: string;
   deepgramApiKey?: string;
   sttProvider?: 'deepgram' | 'gemini';
+  audioSource?: 'both' | 'system' | 'mic';
   alwaysOnTop: boolean;
   compactMode: boolean;
   opacity: number;

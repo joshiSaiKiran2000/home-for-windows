@@ -87,6 +87,7 @@ export class StorageService {
       geminiModel: 'gemini-2.5-flash',
       deepgramApiKey: process.env.DEEPGRAM_API_KEY || '',
       sttProvider: 'deepgram',
+      audioSource: 'both',
       alwaysOnTop: true,
       compactMode: false,
       opacity: 0.95,

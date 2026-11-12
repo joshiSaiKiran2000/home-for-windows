@@ -1,4 +1,4 @@
-import { app, BrowserWindow, globalShortcut, ipcMain, screen } from 'electron';
+import { app, BrowserWindow, globalShortcut, ipcMain, screen, session, desktopCapturer } from 'electron';
 import path from 'path';
 import { registerAiIpc } from './ipc/ai.ipc';
 import { registerResumeIpc } from './ipc/resume.ipc';
@@ -409,6 +409,22 @@ app.whenReady().then(() => {
   registerScreenIpc();
   registerAudioIpc();
   registerWindowIpc();
+
+  // Support Windows system audio loopback capture for headphone users (captures interviewer in Zoom, Meet, Teams)
+  if (session && session.defaultSession) {
+    session.defaultSession.setDisplayMediaRequestHandler((_request, callback) => {
+      desktopCapturer
+        .getSources({ types: ['screen'] })
+        .then((sources) => {
+          const primarySource = sources[0] || { id: 'screen:0:0', name: 'Entire Screen' };
+          callback({ video: primarySource, audio: 'loopback' });
+        })
+        .catch((err) => {
+          console.error('Failed to get sources for display media loopback:', err);
+          callback({ video: null as any, audio: 'loopback' });
+        });
+    });
+  }
 
   // Directly launch the floating overlay window
   createOverlayWindow();

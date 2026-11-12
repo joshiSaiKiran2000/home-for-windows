@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Settings, Key, Sliders, Shield, X, Check, Eye, EyeOff, Mic } from 'lucide-react';
+import { Settings, Key, Sliders, Shield, X, Check, Eye, EyeOff, Mic, Headphones } from 'lucide-react';
 import { AppSettings } from '../../types';
 
 interface SettingsModalProps {
@@ -16,6 +16,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
   const [apiKey, setApiKey] = useState('');
   const [deepgramKey, setDeepgramKey] = useState('');
   const [sttProvider, setSttProvider] = useState<'deepgram' | 'gemini'>('deepgram');
+  const [audioSource, setAudioSource] = useState<'both' | 'system' | 'mic'>('both');
   const [model, setModel] = useState('gemini-2.5-flash');
   const [opacity, setOpacity] = useState(0.95);
   const [alwaysOnTop, setAlwaysOnTop] = useState(true);
@@ -31,6 +32,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
           setApiKey(res.data.geminiApiKey || '');
           setDeepgramKey(res.data.deepgramApiKey || '');
           setSttProvider(res.data.sttProvider || 'deepgram');
+          setAudioSource(res.data.audioSource || 'both');
           const loadedModel = res.data.geminiModel;
           if (
             !loadedModel ||
@@ -59,6 +61,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
         geminiModel: model,
         deepgramApiKey: deepgramKey.trim(),
         sttProvider,
+        audioSource,
         opacity,
         alwaysOnTop,
       });
@@ -160,6 +163,57 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
                         <p className="text-[10px] text-dark-400 mt-0.5">Multimodal direct audio chunk analysis</p>
                       </button>
                     </div>
+                  </div>
+
+                  {/* Audio Source (Headphones Mode) */}
+                  <div>
+                    <label className="block text-xs font-semibold text-dark-200 mb-1.5 flex items-center gap-1.5">
+                      <Headphones className="w-3.5 h-3.5 text-brand-400" />
+                      <span>Audio Input Source (Headphones Support)</span>
+                    </label>
+                    <div className="grid grid-cols-3 gap-2">
+                      <button
+                        type="button"
+                        onClick={() => setAudioSource('both')}
+                        className={`p-2 rounded-xl border text-center transition-colors ${
+                          audioSource === 'both'
+                            ? 'bg-brand-500/15 border-brand-500/60 text-white font-semibold'
+                            : 'bg-dark-800 border-dark-700 text-dark-300 hover:text-white'
+                        }`}
+                      >
+                        <div className="text-xs">🎧 + 🎙️ Both</div>
+                        <div className="text-[10px] text-dark-400 mt-0.5">Headphones & Mic</div>
+                      </button>
+
+                      <button
+                        type="button"
+                        onClick={() => setAudioSource('system')}
+                        className={`p-2 rounded-xl border text-center transition-colors ${
+                          audioSource === 'system'
+                            ? 'bg-brand-500/15 border-brand-500/60 text-white font-semibold'
+                            : 'bg-dark-800 border-dark-700 text-dark-300 hover:text-white'
+                        }`}
+                      >
+                        <div className="text-xs">🎧 Headphones</div>
+                        <div className="text-[10px] text-dark-400 mt-0.5">Interviewer Voice</div>
+                      </button>
+
+                      <button
+                        type="button"
+                        onClick={() => setAudioSource('mic')}
+                        className={`p-2 rounded-xl border text-center transition-colors ${
+                          audioSource === 'mic'
+                            ? 'bg-brand-500/15 border-brand-500/60 text-white font-semibold'
+                            : 'bg-dark-800 border-dark-700 text-dark-300 hover:text-white'
+                        }`}
+                      >
+                        <div className="text-xs">🎙️ Mic Only</div>
+                        <div className="text-[10px] text-dark-400 mt-0.5">Room & Speakers</div>
+                      </button>
+                    </div>
+                    <p className="text-[11px] text-dark-400 mt-1">
+                      <strong>Wearing headphones?</strong> <strong>Both</strong> or <strong>Headphones</strong> captures what plays in your ears (interviewer in Meet, Zoom, Teams) directly via Windows loopback audio.
+                    </p>
                   </div>
 
                   {/* Deepgram API Key */}
