@@ -18,8 +18,6 @@ import {
   Mic,
   Settings,
   Trash2,
-  Square,
-  Power,
 } from "lucide-react";
 import { AnswerResponse, AppSettings } from "../../types";
 import { CodeBlock } from "../AnswerDisplay/CodeBlock";
@@ -332,13 +330,6 @@ export const OverlayWindow: React.FC = () => {
     window.electronAPI?.setOverlayMinimized(false);
   };
 
-  const handleToggleSttProvider = async (provider: "deepgram" | "gemini") => {
-    setSttProvider(provider);
-    if (window.electronAPI) {
-      await window.electronAPI.saveSettings({ sttProvider: provider });
-    }
-  };
-
   const handleSaveSettings = async (newSettings: Partial<AppSettings>) => {
     if (!window.electronAPI) return;
     await window.electronAPI.saveSettings(newSettings);
@@ -599,7 +590,7 @@ export const OverlayWindow: React.FC = () => {
                   backgroundColor: "rgba(22, 27, 34, 0.98)",
                   borderColor: "rgba(48, 54, 61, 0.9)",
                 }}
-                className="absolute right-0 top-full mt-2 w-52 p-3 rounded-xl border shadow-2xl z-50 space-y-2 backdrop-blur-xl animate-fade-in"
+                className="absolute right-0 top-full mt-2 w-44 p-3 rounded-xl border shadow-2xl z-50 space-y-2 backdrop-blur-xl animate-fade-in"
               >
                 <div className="flex items-center justify-between text-xs font-semibold text-white">
                   <span className="flex items-center gap-1.5">
@@ -623,115 +614,6 @@ export const OverlayWindow: React.FC = () => {
                   }}
                   className="w-full accent-brand-500 cursor-pointer"
                 />
-                <p className="text-[10px] text-dark-400 leading-tight">
-                  Background becomes transparent while text stays 100% solid &
-                  readable.
-                </p>
-
-                {/* Window Size Presets */}
-                <div className="pt-2 border-t border-dark-700 space-y-1.5">
-                  <div className="flex items-center justify-between">
-                    <span className="text-[10px] font-semibold uppercase tracking-wider text-dark-300">
-                      Window Size Presets
-                    </span>
-                    <button
-                      type="button"
-                      onClick={() => window.electronAPI?.resetOverlaySize?.()}
-                      className="text-[10px] text-brand-400 hover:text-brand-300 underline font-medium"
-                    >
-                      Reset (Ctrl+0)
-                    </button>
-                  </div>
-                  <div className="grid grid-cols-2 gap-1.5">
-                    <button
-                      type="button"
-                      onClick={() =>
-                        window.electronAPI?.setOverlaySize(380, 420)
-                      }
-                      className="px-2 py-1 rounded-md text-[11px] font-medium bg-dark-800 hover:bg-dark-700 text-dark-200 hover:text-white border border-dark-700 transition-colors"
-                    >
-                      Compact
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => window.electronAPI?.resetOverlaySize?.()}
-                      className="px-2 py-1 rounded-md text-[11px] font-medium bg-dark-800 hover:bg-dark-700 text-brand-300 hover:text-white border border-brand-500/40 transition-colors"
-                    >
-                      Default (460×470)
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() =>
-                        window.electronAPI?.setOverlaySize(580, 650)
-                      }
-                      className="px-2 py-1 rounded-md text-[11px] font-medium bg-dark-800 hover:bg-dark-700 text-dark-200 hover:text-white border border-dark-700 transition-colors"
-                    >
-                      Wide
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() =>
-                        window.electronAPI?.setOverlaySize(460, 850)
-                      }
-                      className="px-2 py-1 rounded-md text-[11px] font-medium bg-dark-800 hover:bg-dark-700 text-dark-200 hover:text-white border border-dark-700 transition-colors"
-                    >
-                      Tall
-                    </button>
-                  </div>
-                  <button
-                    type="button"
-                    onClick={() => window.electronAPI?.resetOverlaySize?.()}
-                    className="w-full mt-1 px-2 py-1.5 rounded-md text-[11px] font-semibold bg-brand-600/25 hover:bg-brand-600/45 text-brand-300 hover:text-white border border-brand-500/35 transition-colors flex items-center justify-center gap-1.5"
-                  >
-                    <RotateCw className="w-3 h-3 text-brand-400" />
-                    Reset to Default Size (Ctrl + 0)
-                  </button>
-
-                  {/* Speech-to-Text STT Engine Option */}
-                  <div className="pt-2 border-t border-dark-700 space-y-1.5">
-                    <span className="text-[10px] font-semibold uppercase tracking-wider text-dark-300">
-                      Speech-to-Text Engine
-                    </span>
-                    <div className="grid grid-cols-2 gap-1.5">
-                      <button
-                        type="button"
-                        onClick={() => handleToggleSttProvider("deepgram")}
-                        className={`px-2 py-1 rounded-md text-[11px] font-medium border transition-colors ${sttProvider === "deepgram"
-                          ? "bg-brand-600/35 border-brand-500/60 text-brand-300 font-semibold"
-                          : "bg-dark-800 border-dark-700 text-dark-300 hover:text-white"
-                          }`}
-                      >
-                        ⚡ Deepgram
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => handleToggleSttProvider("gemini")}
-                        className={`px-2 py-1 rounded-md text-[11px] font-medium border transition-colors ${sttProvider === "gemini"
-                          ? "bg-brand-600/35 border-brand-500/60 text-brand-300 font-semibold"
-                          : "bg-dark-800 border-dark-700 text-dark-300 hover:text-white"
-                          }`}
-                      >
-                        ✨ Gemini
-                      </button>
-                    </div>
-                  </div>
-
-                  <p className="text-[10px] text-dark-400 leading-tight">
-                    Shortcuts: Ctrl+0 (Reset) • Ctrl+Shift+Arrows (Resize)
-                  </p>
-
-                  {/* Stop Overlay Action */}
-                  <div className="pt-2 border-t border-dark-700">
-                    <button
-                      type="button"
-                      onClick={() => (window.electronAPI?.closeOverlay ? window.electronAPI.closeOverlay() : window.electronAPI?.closeWindow())}
-                      className="w-full px-2 py-1.5 rounded-md text-[11px] font-semibold bg-rose-600/20 hover:bg-rose-600 text-rose-300 hover:text-white border border-rose-500/30 hover:border-transparent transition-colors flex items-center justify-center gap-1.5"
-                    >
-                      <Square className="w-3 h-3 fill-current text-rose-400" />
-                      <span>Stop Overlay (Close)</span>
-                    </button>
-                  </div>
-                </div>
               </div>
             )}
           </div>
