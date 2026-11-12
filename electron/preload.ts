@@ -48,6 +48,8 @@ const api = {
 
   captureAndAnalyzeScreen: (sourceId?: string): Promise<IPCResult<AnswerResponse>> =>
     ipcRenderer.invoke('screen:capture-analyze', sourceId),
+  triggerQuickScreenCapture: (): Promise<IPCResult<AnswerResponse>> =>
+    ipcRenderer.invoke('screen:quick-capture'),
 
   // Audio APIs
   processAudioChunk: (
@@ -151,6 +153,22 @@ const api = {
     ipcRenderer.on('app:context-cleared', handler);
     return () => {
       ipcRenderer.removeListener('app:context-cleared', handler);
+    };
+  },
+
+  onScreenAnalyzing: (callback: () => void) => {
+    const handler = () => callback();
+    ipcRenderer.on('app:screen-analyzing', handler);
+    return () => {
+      ipcRenderer.removeListener('app:screen-analyzing', handler);
+    };
+  },
+
+  onScreenError: (callback: (error: string) => void) => {
+    const handler = (_event: any, error: string) => callback(error);
+    ipcRenderer.on('app:screen-error', handler);
+    return () => {
+      ipcRenderer.removeListener('app:screen-error', handler);
     };
   },
 };

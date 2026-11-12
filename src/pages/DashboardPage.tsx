@@ -42,6 +42,17 @@ export const DashboardPage: React.FC = () => {
     // Listen for new answers broadcasted across windows
     const cleanup = window.electronAPI.onNewAnswer((newAns) => {
       setAnswers((prev) => [newAns, ...prev]);
+      setIsAiLoading(false);
+    });
+
+    const cleanupAnalyzing = window.electronAPI.onScreenAnalyzing?.(() => {
+      setIsAiLoading(true);
+      setGlobalError(null);
+    });
+
+    const cleanupScreenError = window.electronAPI.onScreenError?.((err) => {
+      setIsAiLoading(false);
+      setGlobalError(`Screen Capture Error: ${err}`);
     });
 
     const cleanupResume = window.electronAPI.onResumeUpdated?.((newResume) => {
@@ -55,6 +66,8 @@ export const DashboardPage: React.FC = () => {
 
     return () => {
       cleanup();
+      cleanupAnalyzing?.();
+      cleanupScreenError?.();
       cleanupResume?.();
       cleanupContext?.();
     };

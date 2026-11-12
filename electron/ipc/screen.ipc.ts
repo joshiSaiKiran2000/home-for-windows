@@ -23,5 +23,18 @@ export function registerScreenIpc(): void {
       return { success: false, error: err.message || 'Failed to capture or analyze screen.' };
     }
   });
+
+  ipcMain.handle('screen:quick-capture', async () => {
+    try {
+      broadcastToAllWindows('app:screen-analyzing');
+      const answer = await screenService.captureAndAnalyze();
+      broadcastToAllWindows('app:new-answer', answer);
+      return { success: true, data: answer };
+    } catch (err: any) {
+      console.error('Error analyzing screen via quick capture:', err);
+      broadcastToAllWindows('app:screen-error', err.message || 'Failed to capture or analyze screen.');
+      return { success: false, error: err.message || 'Failed to capture or analyze screen.' };
+    }
+  });
 }
 

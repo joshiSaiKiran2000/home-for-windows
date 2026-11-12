@@ -96,6 +96,16 @@ export const OverlayWindow: React.FC = () => {
       },
     );
 
+    const cleanupAnalyzing = window.electronAPI.onScreenAnalyzing?.(() => {
+      setIsLoading(true);
+    });
+
+    const cleanupScreenError = window.electronAPI.onScreenError?.((err) => {
+      setIsLoading(false);
+      setUploadMessage(`Screen error: ${err}`);
+      setTimeout(() => setUploadMessage(null), 4000);
+    });
+
     window.electronAPI?.resetZoom?.();
     window.electronAPI?.resetOverlaySize?.();
 
@@ -110,11 +120,14 @@ export const OverlayWindow: React.FC = () => {
       cleanupMode();
       cleanupMinimized?.();
       cleanupOpacity?.();
+      cleanupAnalyzing?.();
+      cleanupScreenError?.();
     };
   }, []);
 
   // Keyboard shortcuts:
   // - Escape: toggles between full overlay and minimized expand button
+  // - Ctrl + Shift + S / Ctrl + Shift + A: Instant Capture & Analyze active screen (no mouse needed)
   // - Ctrl + Shift + Arrows: Widen, Narrow, Increase, or Decrease Height
   // - Ctrl + Arrows / Alt + Arrows: Widen, Narrow, Increase, or Decrease Height (when not in input)
   // - Ctrl + 0 / Alt + 0: Reset overlay to default size (460x470) and 100% zoom
@@ -171,6 +184,17 @@ export const OverlayWindow: React.FC = () => {
         const isInputFocused =
           document.activeElement?.tagName === "INPUT" ||
           document.activeElement?.tagName === "TEXTAREA";
+
+        // Shortcut to instantly capture & analyze active screen (Ctrl + Shift + S or Ctrl + Shift + A or Ctrl + Alt + S)
+        if (
+          (e.ctrlKey && e.shiftKey && (e.key === "S" || e.key === "s" || e.key === "A" || e.key === "a")) ||
+          (e.ctrlKey && e.altKey && (e.key === "S" || e.key === "s"))
+        ) {
+          e.preventDefault();
+          e.stopPropagation();
+          handleScreenCapture();
+          return;
+        }
 
         // Shortcut to clear text / clear screen (Ctrl + L or Ctrl + K)
         if (
@@ -558,7 +582,7 @@ export const OverlayWindow: React.FC = () => {
           <button
             onClick={() => setIsScreenModalOpen(true)}
             className="p-1 rounded text-dark-400 hover:text-emerald-400 hover:bg-dark-700 transition-colors"
-            title="Screen Analysis"
+            title="Screen Analysis (Shortcut: Ctrl + Shift + S)"
           >
             <Monitor className="w-3.5 h-3.5" />
           </button>

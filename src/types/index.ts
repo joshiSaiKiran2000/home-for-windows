@@ -93,6 +93,7 @@ export interface ElectronAPI {
   // Screen APIs
   getScreenSources: () => Promise<IPCResult<ScreenSource[]>>;
   captureAndAnalyzeScreen: (sourceId?: string) => Promise<IPCResult<AnswerResponse>>;
+  triggerQuickScreenCapture?: () => Promise<IPCResult<AnswerResponse>>;
 
   // Audio APIs
   processAudioChunk: (audioBase64: string, mimeType: string) => Promise<IPCResult<{ detectedQuestion?: string; answer?: AnswerResponse }>>;
@@ -129,6 +130,8 @@ export interface ElectronAPI {
   onOverlayOpacityChange: (callback: (opacity: number) => void) => () => void;
   onResumeUpdated?: (callback: (resume: ResumeData) => void) => () => void;
   onContextCleared?: (callback: () => void) => () => void;
+  onScreenAnalyzing?: (callback: () => void) => () => void;
+  onScreenError?: (callback: (error: string) => void) => () => void;
 }
 
 declare global {

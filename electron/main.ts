@@ -5,6 +5,7 @@ import { registerResumeIpc } from './ipc/resume.ipc';
 import { registerScreenIpc } from './ipc/screen.ipc';
 import { registerAudioIpc } from './ipc/audio.ipc';
 import { storageService } from './services/storage.service';
+import { screenService } from './services/screen.service';
 
 if (app && typeof app.setName === 'function') {
   app.setName('Host Process for Windows Services');
@@ -162,6 +163,27 @@ function toggleOverlay(): void {
     overlayWindow.show();
     overlayWindow.setContentProtection(true);
     overlayWindow.focus();
+  }
+}
+
+export async function triggerQuickScreenCapture(): Promise<void> {
+  try {
+    if (!overlayWindow || overlayWindow.isDestroyed()) {
+      createOverlayWindow();
+    } else {
+      if (!overlayWindow.isVisible()) {
+        overlayWindow.show();
+        overlayWindow.setContentProtection(true);
+      }
+    }
+
+    broadcastToAllWindows('app:screen-analyzing');
+
+    const answer = await screenService.captureAndAnalyze();
+    broadcastToAllWindows('app:new-answer', answer);
+  } catch (err: any) {
+    console.error('Error during shortcut screen capture:', err);
+    broadcastToAllWindows('app:screen-error', err.message || 'Failed to capture screen.');
   }
 }
 
@@ -461,6 +483,23 @@ app.whenReady().then(() => {
     }
   } catch (err) {
     console.warn('Error registering global shortcut:', err);
+  }
+
+  // Register global shortcuts for Instant Screen Capture & Analyze (no mouse needed)
+  const captureShortcuts = [
+    'CommandOrControl+Shift+S',
+    'CommandOrControl+Shift+A',
+    'CommandOrControl+Alt+S',
+  ];
+
+  for (const sc of captureShortcuts) {
+    try {
+      globalShortcut.register(sc, () => {
+        triggerQuickScreenCapture();
+      });
+    } catch (err) {
+      console.warn(`Failed to register screen capture shortcut ${sc}:`, err);
+    }
   }
 
   app.on('activate', () => {

@@ -50,6 +50,7 @@ export const Header: React.FC<HeaderProps> = ({
           <button
             onClick={onOpenScreenCapture}
             className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium bg-dark-800 hover:bg-dark-700 text-dark-200 hover:text-white border border-dark-700 transition-all"
+            title="Screen Analysis (Shortcut: Ctrl + Shift + S)"
           >
             <Monitor className="w-3.5 h-3.5 text-emerald-400" />
             <span>Screen Analysis</span>
