@@ -154,17 +154,53 @@ export const OverlayWindow: React.FC = () => {
         return;
       }
 
+      const isArrowRight =
+        e.key === "ArrowRight" ||
+        e.code === "ArrowRight" ||
+        e.key === "Right";
+      const isArrowLeft =
+        e.key === "ArrowLeft" || e.code === "ArrowLeft" || e.key === "Left";
+      const isArrowDown =
+        e.key === "ArrowDown" || e.code === "ArrowDown" || e.key === "Down";
+      const isArrowUp =
+        e.key === "ArrowUp" || e.code === "ArrowUp" || e.key === "Up";
+
+      const isInputFocused =
+        document.activeElement?.tagName === "INPUT" ||
+        document.activeElement?.tagName === "TEXTAREA";
+
+      // Move Overlay Shortcuts (Alt + Arrows, Alt + Shift + Arrows, or Ctrl + Alt + Arrows)
+      // Works in both expanded and bubble mode
+      if (
+        (e.altKey && !e.ctrlKey && !isInputFocused) ||
+        (e.altKey && e.shiftKey) ||
+        (e.ctrlKey && e.altKey)
+      ) {
+        const moveStep = e.shiftKey ? 80 : 40;
+        if (isArrowLeft) {
+          e.preventDefault();
+          e.stopPropagation();
+          window.electronAPI?.moveOverlayBy(-moveStep, 0);
+          return;
+        } else if (isArrowRight) {
+          e.preventDefault();
+          e.stopPropagation();
+          window.electronAPI?.moveOverlayBy(moveStep, 0);
+          return;
+        } else if (isArrowUp) {
+          e.preventDefault();
+          e.stopPropagation();
+          window.electronAPI?.moveOverlayBy(0, -moveStep);
+          return;
+        } else if (isArrowDown) {
+          e.preventDefault();
+          e.stopPropagation();
+          window.electronAPI?.moveOverlayBy(0, moveStep);
+          return;
+        }
+      }
+
       if (!isMinimized) {
-        const isArrowRight =
-          e.key === "ArrowRight" ||
-          e.code === "ArrowRight" ||
-          e.key === "Right";
-        const isArrowLeft =
-          e.key === "ArrowLeft" || e.code === "ArrowLeft" || e.key === "Left";
-        const isArrowDown =
-          e.key === "ArrowDown" || e.code === "ArrowDown" || e.key === "Down";
-        const isArrowUp =
-          e.key === "ArrowUp" || e.code === "ArrowUp" || e.key === "Up";
         const isMinus =
           e.key === "-" ||
           e.key === "_" ||
@@ -177,10 +213,6 @@ export const OverlayWindow: React.FC = () => {
           e.code === "NumpadAdd";
         const isZero =
           e.key === "0" || e.code === "Digit0" || e.code === "Numpad0";
-
-        const isInputFocused =
-          document.activeElement?.tagName === "INPUT" ||
-          document.activeElement?.tagName === "TEXTAREA";
 
         // Shortcut to instantly capture & analyze active screen (Ctrl + Shift + S or Ctrl + Shift + A or Ctrl + Alt + S)
         if (
@@ -220,7 +252,8 @@ export const OverlayWindow: React.FC = () => {
           return;
         }
 
-        // 1. Ctrl + Shift + Arrows (works everywhere, including inside input with preventDefault)
+        // 1. Resize Overlay Shortcuts:
+        // Ctrl + Shift + Arrows (works everywhere, including inside input with preventDefault)
         if (e.ctrlKey && e.shiftKey) {
           if (isArrowRight) {
             e.preventDefault();
@@ -236,7 +269,7 @@ export const OverlayWindow: React.FC = () => {
             window.electronAPI?.resizeOverlayBy(0, -30); // Shorter / Decrease height
           }
         }
-        // 2. Ctrl + Arrows (when not focused in text input)
+        // 3. Ctrl + Arrows (when not focused in text input)
         else if (e.ctrlKey && !isInputFocused) {
           if (isArrowRight) {
             e.preventDefault();
@@ -250,22 +283,6 @@ export const OverlayWindow: React.FC = () => {
           } else if (isArrowUp) {
             e.preventDefault();
             window.electronAPI?.resizeOverlayBy(0, -30); // Decrease height
-          }
-        }
-        // 3. Alt + Arrows (alternative convenient one-hand resize)
-        else if (e.altKey && !isInputFocused) {
-          if (isArrowRight) {
-            e.preventDefault();
-            window.electronAPI?.resizeOverlayBy(30, 0);
-          } else if (isArrowLeft) {
-            e.preventDefault();
-            window.electronAPI?.resizeOverlayBy(-30, 0);
-          } else if (isArrowDown) {
-            e.preventDefault();
-            window.electronAPI?.resizeOverlayBy(0, 30);
-          } else if (isArrowUp) {
-            e.preventDefault();
-            window.electronAPI?.resizeOverlayBy(0, -30);
           }
         }
       }

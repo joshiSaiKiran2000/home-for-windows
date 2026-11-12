@@ -242,6 +242,21 @@ function setOverlayBoundsDirect(bounds: { x?: number; y?: number; width?: number
 }
 
 // Window control IPC handlers
+export function moveOverlay(dx: number, dy: number): void {
+  if (overlayWindow && !overlayWindow.isDestroyed()) {
+    const [x, y] = overlayWindow.getPosition();
+    const [w, h] = overlayWindow.getSize();
+    const primaryDisplay = screen.getPrimaryDisplay();
+    const { width: screenWidth, height: screenHeight } = primaryDisplay.workAreaSize;
+
+    // Keep window comfortably within screen bounds (at least 50px visible)
+    const newX = Math.min(Math.max(-w + 50, x + dx), screenWidth - 50);
+    const newY = Math.min(Math.max(0, y + dy), screenHeight - 50);
+
+    overlayWindow.setPosition(Math.round(newX), Math.round(newY));
+  }
+}
+
 function registerWindowIpc(): void {
   ipcMain.handle('window:toggle-overlay', () => {
     toggleOverlay();
@@ -352,10 +367,7 @@ function registerWindowIpc(): void {
   });
 
   ipcMain.handle('window:move-overlay-by', (_event, dx: number, dy: number) => {
-    if (overlayWindow && !overlayWindow.isDestroyed()) {
-      const [x, y] = overlayWindow.getPosition();
-      overlayWindow.setPosition(Math.round(x + dx), Math.round(y + dy));
-    }
+    moveOverlay(dx, dy);
   });
 
   ipcMain.handle('window:resize-overlay-by', (_event, dw: number, dh: number) => {
@@ -520,6 +532,28 @@ app.whenReady().then(() => {
       });
     } catch (err) {
       console.warn(`Failed to register screen capture shortcut ${sc}:`, err);
+    }
+  }
+
+  // Register global shortcuts to move the overlay (Alt + Shift + Arrows and Ctrl + Alt + Arrows)
+  const moveShortcuts = [
+    { key: 'Alt+Shift+Left', dx: -50, dy: 0 },
+    { key: 'Alt+Shift+Right', dx: 50, dy: 0 },
+    { key: 'Alt+Shift+Up', dx: 0, dy: -50 },
+    { key: 'Alt+Shift+Down', dx: 0, dy: 50 },
+    { key: 'CommandOrControl+Alt+Left', dx: -50, dy: 0 },
+    { key: 'CommandOrControl+Alt+Right', dx: 50, dy: 0 },
+    { key: 'CommandOrControl+Alt+Up', dx: 0, dy: -50 },
+    { key: 'CommandOrControl+Alt+Down', dx: 0, dy: 50 },
+  ];
+
+  for (const ms of moveShortcuts) {
+    try {
+      globalShortcut.register(ms.key, () => {
+        moveOverlay(ms.dx, ms.dy);
+      });
+    } catch (err) {
+      console.warn(`Failed to register move shortcut ${ms.key}:`, err);
     }
   }
 
