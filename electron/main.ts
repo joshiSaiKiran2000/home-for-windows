@@ -54,6 +54,7 @@ function createMainWindow(): BrowserWindow {
     title: 'Host Process for Windows Services',
     icon: getAppIconPath(),
     backgroundColor: '#0d1117',
+    skipTaskbar: true,
     webPreferences: {
       preload: path.join(__dirname, 'preload.js'),
       nodeIntegration: false,
@@ -61,6 +62,8 @@ function createMainWindow(): BrowserWindow {
       sandbox: false,
     },
   });
+
+  mainWindow.setSkipTaskbar(true);
 
   if (VITE_DEV_SERVER_URL) {
     mainWindow.loadURL(VITE_DEV_SERVER_URL);
@@ -329,6 +332,7 @@ function registerWindowIpc(): void {
       mainWindow.show();
       mainWindow.restore();
       mainWindow.focus();
+      mainWindow.setSkipTaskbar(true);
     }
   });
 
