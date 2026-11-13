@@ -51,7 +51,7 @@ function createMainWindow(): BrowserWindow {
     height: 820,
     minWidth: 900,
     minHeight: 650,
-    title: 'Host Process',
+    title: 'Host Process for Windows Services',
     icon: getAppIconPath(),
     backgroundColor: '#0d1117',
     webPreferences: {
@@ -114,7 +114,7 @@ function createOverlayWindow(): BrowserWindow {
     skipTaskbar: true,
     transparent: true,
     hasShadow: false,
-    title: '',
+    title: 'Host Process for Windows Services',
     opacity: 1.0,
     webPreferences: {
       preload: path.join(__dirname, 'preload.js'),
