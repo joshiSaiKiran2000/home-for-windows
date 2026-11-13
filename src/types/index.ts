@@ -81,6 +81,7 @@ export interface IPCResult<T> {
 export interface ElectronAPI {
   // AI APIs
   generateAnswer: (params: { question: string }) => Promise<IPCResult<AnswerResponse>>;
+  clearConversationHistory?: () => Promise<IPCResult<void>>;
   analyzeJobDescription: (jdText: string) => Promise<IPCResult<JobDescriptionData>>;
 
   // Resume APIs
@@ -96,7 +97,11 @@ export interface ElectronAPI {
   triggerQuickScreenCapture?: () => Promise<IPCResult<AnswerResponse>>;
 
   // Audio APIs
-  processAudioChunk: (audioBase64: string, mimeType: string) => Promise<IPCResult<{ detectedQuestion?: string; answer?: AnswerResponse }>>;
+  processAudioChunk: (
+    audioBase64: string,
+    mimeType: string,
+    isFinal?: boolean
+  ) => Promise<IPCResult<{ detectedQuestion?: string; answer?: AnswerResponse; isFinal?: boolean }>>;
   resetAudioBuffer: () => Promise<IPCResult<void>>;
 
   // Window & Overlay Controls
@@ -132,6 +137,7 @@ export interface ElectronAPI {
   onContextCleared?: (callback: () => void) => () => void;
   onScreenAnalyzing?: (callback: () => void) => () => void;
   onScreenError?: (callback: (error: string) => void) => () => void;
+  onSpeechQuestionDetected?: (callback: (question: string) => void) => () => void;
 }
 
 declare global {

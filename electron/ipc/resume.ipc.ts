@@ -1,6 +1,7 @@
 import { ipcMain } from 'electron';
 import { resumeService } from '../services/resume.service';
 import { storageService } from '../services/storage.service';
+import { geminiService } from '../services/gemini.service';
 import { broadcastToAllWindows } from '../main';
 import { JobDescriptionData } from '../../src/types';
 
@@ -46,6 +47,7 @@ export function registerResumeIpc(): void {
   ipcMain.handle('context:clear', async () => {
     try {
       storageService.clearContext();
+      geminiService.clearConversationHistory();
       broadcastToAllWindows('app:context-cleared');
       return { success: true };
     } catch (err: any) {

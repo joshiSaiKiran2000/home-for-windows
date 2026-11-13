@@ -41,5 +41,23 @@ export function registerAiIpc(): void {
       return { success: false, error: err.message || 'Failed to analyze job description.' };
     }
   });
+
+  ipcMain.handle('ai:clear-history', () => {
+    try {
+      geminiService.clearConversationHistory();
+      return { success: true };
+    } catch (err: any) {
+      return { success: false, error: err.message };
+    }
+  });
+
+  ipcMain.handle('ai:get-history', () => {
+    try {
+      const history = geminiService.getConversationHistory();
+      return { success: true, data: history };
+    } catch (err: any) {
+      return { success: false, error: err.message };
+    }
+  });
 }
 

@@ -1,111 +1,95 @@
 import { geminiService } from './gemini.service';
 import { deepgramService } from './deepgram.service';
 import { storageService } from './storage.service';
-import { AnswerResponse } from '../../src/types';
 
 export class AudioService {
-  private speechBuffer: string = '';
+  private lastTranscribedQuestion: string = '';
 
   resetBuffer(): void {
-    this.speechBuffer = '';
+    this.lastTranscribedQuestion = '';
+  }
+
+  getBuffer(): string {
+    return this.lastTranscribedQuestion;
   }
 
   /**
-   * Processes an incoming audio chunk (base64) from the renderer.
-   * Transcribes via Deepgram Nova-2, accumulates the complete question text,
-   * and only sends the completed question to Gemini to generate the answer.
+   * Processes incoming cumulative audio utterance from renderer.
+   * Transcribes via Deepgram Nova-2 with full context preservation.
+   * DOES NOT automatically generate an AI answer. The candidate reviews the complete question
+   * in the input box and clicks "Ask" (or hits Enter) to send to Gemini AI.
    */
   async processChunk(
     audioBase64: string,
-    mimeType: string
-  ): Promise<{ detectedQuestion?: string; answer?: AnswerResponse }> {
+    mimeType: string,
+      isFinal ?: boolean
+  ): Promise < { detectedQuestion?: string; isFinal?: boolean } > {
       const settings = storageService.getSettings();
 
-      // 1. If audio chunk is empty (silence/pause detected by client)
-      if (!audioBase64 || audioBase64.length === 0) {
-        if (this.speechBuffer.trim().length >= 8) {
-          const fullQuestion = this.speechBuffer.trim();
-          this.speechBuffer = '';
-          const answer = await geminiService.generateInterviewAnswer({
-            question: fullQuestion,
-            source: 'audio',
-          });
-          return {
-            detectedQuestion: fullQuestion,
-            answer,
-          };
-        }
-        return {};
-      }
+    if (!audioBase64 || audioBase64.length === 0) {
+      return {};
+    }
 
-        // 2. Transcribe audio via Deepgram Nova-2
+        // 1. Primary Engine: Deepgram Nova-2
         if (settings.deepgramApiKey) {
           try {
             const transcript = await deepgramService.transcribeAudio(audioBase64, mimeType);
-              const segment = (transcript || '').trim();
+            let clean = (transcript || '').trim();
 
-              if (segment.length > 0) {
-                if (this.speechBuffer.length > 0) {
-                  this.speechBuffer += ' ' + segment;
-                } else {
-                  this.speechBuffer = segment;
-                }
-
-                const currentFull = this.speechBuffer.trim();
-                const wordCount = currentFull.split(/\s+/).length;
-
-                // Check if speech has reached a natural sentence or question completion
-                const endsWithQuestion = segment.endsWith('?');
-                const endsWithSentence = segment.endsWith('.') || segment.endsWith('!');
-
-                if (endsWithQuestion || (endsWithSentence && wordCount >= 3)) {
-                  const completedQuestion = currentFull;
-                  this.speechBuffer = '';
-
-                  const answer = await geminiService.generateInterviewAnswer({
-                    question: completedQuestion,
-                    source: 'audio',
-                  });
-
-                  return {
-                    detectedQuestion: completedQuestion,
-                    answer,
-                  };
-                }
-
-                // Still speaking in progress: show live transcript in UI, do NOT call Gemini yet
-                return {
-                  detectedQuestion: `(Listening: "${currentFull}...")`,
-                };
-              } else {
-                // If Deepgram returned empty for this slice and previous buffer has speech, flush it
-                if (this.speechBuffer.trim().length >= 8) {
-                  const completedQuestion = this.speechBuffer.trim();
-                  this.speechBuffer = '';
-                  const answer = await geminiService.generateInterviewAnswer({
-                    question: completedQuestion,
-                    source: 'audio',
-                  });
-                  return {
-                    detectedQuestion: completedQuestion,
-                    answer,
-                  };
-                }
+              if (clean.length === 0) {
+                return {};
               }
 
-              return {};
-            } catch (err: any) {
-              console.error('Deepgram transcription error:', err);
+              // Polish sentence capitalization
+              if (clean.length > 0) {
+                clean = clean.charAt(0).toUpperCase() + clean.slice(1);
+              }
+
+              // When the speaker pauses and the utterance completes:
+              if (isFinal) {
+                // If sentence starts with an interrogative / question word, ensure it ends with '?'
+                const isQuestion =
+                  /^(how|what|why|can|could|would|should|will|do|does|did|is|are|was|were|which|where|when|who|explain|tell|describe|difference)\b/i.test(
+                    clean
+                  );
+
+                  if (isQuestion && !clean.endsWith('?')) {
+                    clean = clean.replace(/[.,!]+$/, '') + '?';
+                  }
+
+              this.lastTranscribedQuestion = clean;
               return {
-                detectedQuestion: `(Deepgram error: ${err.message || 'Check Deepgram API key'})`,
+                detectedQuestion: clean,
+                isFinal: true,
               };
             }
-          }
 
-    // 3. Fallback only if Deepgram API key is not configured at all
-    return await geminiService.processAudioChunk(audioBase64, mimeType);
+            // While speaking: return live progress transcript
+            this.lastTranscribedQuestion = clean;
+            return {
+              detectedQuestion: clean,
+              isFinal: false,
+            };
+          } catch (err: any) {
+            console.error('Deepgram transcription error:', err);
+            return {
+              detectedQuestion: `(Deepgram error: ${err.message || 'Check Deepgram API key'})`,
+              isFinal: false,
+            };
+          }
+        }
+
+        // 2. Fallback only if Deepgram API key is not configured
+        try {
+          const fallbackRes = await geminiService.processAudioChunk(audioBase64, mimeType);
+          return {
+            detectedQuestion: fallbackRes.detectedQuestion,
+            isFinal: true,
+          };
+        } catch {
+          return {};
         }
       }
+}
 
-      export const audioService = new AudioService();
-
+    export const audioService = new AudioService();

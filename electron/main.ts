@@ -214,12 +214,38 @@ function setOverlayBoundsDirect(bounds: { x?: number; y?: number; width?: number
   const [currentW, currentH] = overlayWindow.getSize();
 
   const minW = (bounds.width !== undefined && bounds.width < 120) ? 48 : 300;
-  const minH = (bounds.height !== undefined && bounds.height < 120) ? 48 : 180;
+  const minH = (bounds.height !== undefined && bounds.height < 120) ? 48 : 160;
 
   const finalW = bounds.width !== undefined ? Math.max(minW, Math.min(1600, Math.round(bounds.width))) : currentW;
   const finalH = bounds.height !== undefined ? Math.max(minH, Math.min(1400, Math.round(bounds.height))) : currentH;
-  const finalX = bounds.x !== undefined ? Math.round(bounds.x) : currentX;
-  const finalY = bounds.y !== undefined ? Math.round(bounds.y) : currentY;
+
+  const currentDisplay = screen.getDisplayNearestPoint({ x: currentX, y: currentY });
+  const workArea = currentDisplay.workArea;
+
+  let finalX = bounds.x !== undefined ? Math.round(bounds.x) : currentX;
+  let finalY = bounds.y !== undefined ? Math.round(bounds.y) : currentY;
+
+  // If y was not explicitly provided (e.g., auto-resizing via set-overlay-size):
+  if (bounds.y === undefined && finalH !== currentH) {
+    // If the window is in the lower half of the work area, anchor to bottom edge so it expands upward smoothly
+    if (currentY + currentH > workArea.y + workArea.height * 0.5) {
+      finalY = (currentY + currentH) - finalH;
+    }
+  }
+
+  // Ensure window always stays fully within work area boundaries
+  if (finalY + finalH > workArea.y + workArea.height) {
+    finalY = workArea.y + workArea.height - finalH;
+  }
+  if (finalY < workArea.y) {
+    finalY = workArea.y;
+  }
+  if (finalX + finalW > workArea.x + workArea.width) {
+    finalX = workArea.x + workArea.width - finalW;
+  }
+  if (finalX < workArea.x) {
+    finalX = workArea.x;
+  }
 
   // Temporarily unlock resizable and min/max limits to allow shrinking on Windows
   overlayWindow.setResizable(true);
@@ -239,6 +265,8 @@ function setOverlayBoundsDirect(bounds: { x?: number; y?: number; width?: number
 
   lastOverlayBounds.width = finalW;
   lastOverlayBounds.height = finalH;
+  lastOverlayBounds.x = finalX;
+  lastOverlayBounds.y = finalY;
 }
 
 // Window control IPC handlers
@@ -385,10 +413,7 @@ function registerWindowIpc(): void {
 
   ipcMain.handle('window:set-overlay-size', (_event, width: number, height: number) => {
     if (overlayWindow && !overlayWindow.isDestroyed()) {
-      const [x, y] = overlayWindow.getPosition();
       setOverlayBoundsDirect({
-        x,
-        y,
         width,
         height,
       });
@@ -397,10 +422,7 @@ function registerWindowIpc(): void {
 
   ipcMain.handle('window:reset-overlay-size', () => {
     if (overlayWindow && !overlayWindow.isDestroyed()) {
-      const [x, y] = overlayWindow.getPosition();
       setOverlayBoundsDirect({
-        x,
-        y,
         width: DEFAULT_OVERLAY_WIDTH,
         height: DEFAULT_OVERLAY_HEIGHT,
       });

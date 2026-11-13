@@ -36,9 +36,22 @@ Your goal is to give top-tier, practical, interview-ready answers tailored to th
 - Ground the answer in the candidate's uploaded resume, skills, and projects when available.
 - Use the STAR framework (Situation, Task, Action, Result) in a natural, conversational way.
 
+5. FOR FOLLOW-UP QUESTIONS & ITERATIVE DISCUSSION:
+- When the question references previous code, topics, or decisions (e.g. "How would you handle auth with that?", "What about token refresh?", "What if this fails?", "Can you optimize that?", "Write unit tests for that?", "Why use that library?"):
+- Treat the provided recent conversation history as active, shared context.
+- Directly extend, refine, or explain the established code and architecture rather than repeating introductory basics or starting from scratch.
+- Maintain strict consistency with the exact libraries, package versions, and patterns introduced in the earlier answers.
+
 GENERAL STYLE:
 - Make every answer natural, practical, and easy to explain in an interview.
 - Never use unnecessarily complicated vocabulary or empty placeholders like \`const config = {};\`.`;
+
+export interface ConversationTurn {
+  question: string;
+  answer: string;
+  timestamp: number;
+  source?: 'manual' | 'audio' | 'screen';
+}
 
 export type QuestionCategory = 'integration' | 'algorithm' | 'concept' | 'behavioral' | 'general';
 
@@ -76,38 +89,56 @@ export function classifyQuestion(question: string): QuestionCategory {
     return 'algorithm';
   }
 
-if (hasIntegrationKeyword) {
-  return 'integration';
-}
+  if (hasIntegrationKeyword) {
+    return 'integration';
+  }
 
-// 3. Behavioral / Resume / Experience Questions
-const behavioralPatterns = [
-  /\b(tell\s+me\s+about\s+yourself|introduce\s+yourself|walk\s+me\s+through\s+your\s+resume)\b/i,
-  /\b(tell\s+me\s+about\s+a\s+(project|time|challenge|conflict|bug|failure|success))\b/i,
-  /\b(what\s+was\s+your\s+role|your\s+responsibilities|experience\s+with)\b/i,
-  /\b(strengths\s+and\s+weaknesses|why\s+should\s+we\s+hire\s+you)\b/i,
-];
+  // 3. Behavioral / Resume / Experience Questions
+  const behavioralPatterns = [
+    /\b(tell\s+me\s+about\s+yourself|introduce\s+yourself|walk\s+me\s+through\s+your\s+resume)\b/i,
+    /\b(tell\s+me\s+about\s+a\s+(project|time|challenge|conflict|bug|failure|success))\b/i,
+    /\b(what\s+was\s+your\s+role|your\s+responsibilities|experience\s+with)\b/i,
+    /\b(strengths\s+and\s+weaknesses|why\s+should\s+we\s+hire\s+you)\b/i,
+  ];
 
-if (behavioralPatterns.some((pattern) => pattern.test(q))) {
-  return 'behavioral';
-}
+  if (behavioralPatterns.some((pattern) => pattern.test(q))) {
+    return 'behavioral';
+  }
 
-// 4. Conceptual / Definition Questions
-const conceptPatterns = [
-  /^(what\s+is|what\s+are|what\s+do\s+you\s+mean\s+by)\b/i,
-  /^(explain|describe|define)\b/i,
-  /\b(difference\s+between|versus|vs\.?)\b/i,
-  /\b(why\s+do\s+we\s+use|pros\s+and\s+cons|advantages\s+of)\b/i,
-];
+  // 4. Conceptual / Definition Questions
+  const conceptPatterns = [
+    /^(what\s+is|what\s+are|what\s+do\s+you\s+mean\s+by)\b/i,
+    /^(explain|describe|define)\b/i,
+    /\b(difference\s+between|versus|vs\.?)\b/i,
+    /\b(why\s+do\s+we\s+use|pros\s+and\s+cons|advantages\s+of)\b/i,
+  ];
 
-if (conceptPatterns.some((pattern) => pattern.test(q))) {
-  return 'concept';
-}
+  if (conceptPatterns.some((pattern) => pattern.test(q))) {
+    return 'concept';
+  }
 
-return 'general';
+  return 'general';
 }
 
 export class GeminiService {
+  private conversationHistory: ConversationTurn[] = [];
+
+  addToHistory(turn: ConversationTurn): void {
+    this.conversationHistory.push(turn);
+    // Keep last 4 turns to provide rich context without excessive tokens
+    if (this.conversationHistory.length > 4) {
+      this.conversationHistory.shift();
+    }
+  }
+
+  clearConversationHistory(): void {
+    this.conversationHistory = [];
+  }
+
+  getConversationHistory(): ConversationTurn[] {
+    return [...this.conversationHistory];
+  }
+
   private getClient(apiKey?: string): GoogleGenerativeAI {
     const key = apiKey || storageService.getSettings().geminiApiKey || process.env.GEMINI_API_KEY;
     if (!key) {
@@ -164,82 +195,82 @@ export class GeminiService {
       .trim();
   }
 
-    /**
-     * For coding questions, extract code blocks, strip all comments and tests, and format directly.
-     */
-    cleanCodingSolution(text: string): string {
-      const codeBlockRegex = /```([a-zA-Z0-9_\-]*)\r?\n([\s\S]*?)```/g;
-      const matches = [...text.matchAll(codeBlockRegex)];
+  /**
+   * For coding questions, extract code blocks, strip all comments and tests, and format directly.
+   */
+  cleanCodingSolution(text: string): string {
+    const codeBlockRegex = /```([a-zA-Z0-9_\-]*)\r?\n([\s\S]*?)```/g;
+    const matches = [...text.matchAll(codeBlockRegex)];
 
-        if (matches.length > 0) {
-          const cleanedBlocks = matches.map(m => {
-            const lang = m[1] || 'javascript';
-            const cleaned = this.stripCommentsAndTests(m[2]);
-            return '```' + lang + '\n' + cleaned + '\n```';
-          });
+    if (matches.length > 0) {
+      const cleanedBlocks = matches.map(m => {
+        const lang = m[1] || 'javascript';
+        const cleaned = this.stripCommentsAndTests(m[2]);
+        return '```' + lang + '\n' + cleaned + '\n```';
+      });
 
-          return cleanedBlocks.join('\n\n');
-        }
+      return cleanedBlocks.join('\n\n');
+    }
 
-        const cleaned = this.stripCommentsAndTests(text);
-        return '```javascript\n' + cleaned + '\n```';
-      }
+    const cleaned = this.stripCommentsAndTests(text);
+    return '```javascript\n' + cleaned + '\n```';
+  }
 
-        /**
-         * Determine if a question is a coding question / challenge.
-         */
-        isCodingQuestion(question: string, _responseText ?: string): boolean {
-          return classifyQuestion(question) === 'algorithm';
-        }
+  /**
+   * Determine if a question is a coding question / challenge.
+   */
+  isCodingQuestion(question: string, _responseText?: string): boolean {
+    return classifyQuestion(question) === 'algorithm';
+  }
 
-        /**
-         * Sanitize AI answer to ensure coding solutions are cleanly displayed without comments or test runs,
-         * while preserving full multi-step explanations, commands, and code blocks for integration and conceptual guides.
-         */
-        sanitizeAnswer(question: string, responseText: string): { isCoding: boolean; cleanedAnswer: string } {
-          const category = classifyQuestion(question);
+  /**
+   * Sanitize AI answer to ensure coding solutions are cleanly displayed without comments or test runs,
+   * while preserving full multi-step explanations, commands, and code blocks for integration and conceptual guides.
+   */
+  sanitizeAnswer(question: string, responseText: string): { isCoding: boolean; cleanedAnswer: string } {
+    const category = classifyQuestion(question);
 
-          if (category === 'algorithm') {
-            return {
-              isCoding: true,
-              cleanedAnswer: this.cleanCodingSolution(responseText),
-            };
-          }
+    if (category === 'algorithm') {
+      return {
+        isCoding: true,
+        cleanedAnswer: this.cleanCodingSolution(responseText),
+      };
+    }
 
-          const codeBlockRegex = /```([a-zA-Z0-9_\-]*)\r?\n([\s\S]*?)```/g;
-          const cleanedAnswer = responseText.replace(codeBlockRegex, (_match, lang, code) => {
-            const cleaned = category === 'concept' ? this.stripCommentsAndTests(code) : code.trim();
-            return '```' + (lang || 'javascript') + '\n' + cleaned + '\n```';
-          });
+    const codeBlockRegex = /```([a-zA-Z0-9_\-]*)\r?\n([\s\S]*?)```/g;
+    const cleanedAnswer = responseText.replace(codeBlockRegex, (_match, lang, code) => {
+      const cleaned = category === 'concept' ? this.stripCommentsAndTests(code) : code.trim();
+      return '```' + (lang || 'javascript') + '\n' + cleaned + '\n```';
+    });
 
-            return {
-              isCoding: false,
-              cleanedAnswer,
-            };
-          }
+    return {
+      isCoding: false,
+      cleanedAnswer,
+    };
+  }
 
   /**
    * Generate an interview answer based on Question, Resume, and Job Description.
    */
   async generateInterviewAnswer(params: {
-          question: string;
-          source?: 'manual' | 'audio' | 'screen';
-        }): Promise < AnswerResponse > {
-          const ai = this.getClient();
-          const model = ai.getGenerativeModel({
-            model: this.getModelName(),
-            systemInstruction: SYSTEM_INSTRUCTION,
-          });
+    question: string;
+    source?: 'manual' | 'audio' | 'screen';
+  }): Promise<AnswerResponse> {
+    const ai = this.getClient();
+    const model = ai.getGenerativeModel({
+      model: this.getModelName(),
+      systemInstruction: SYSTEM_INSTRUCTION,
+    });
 
-          const resume = storageService.getResume();
-          const jd = storageService.getJobDescription();
+    const resume = storageService.getResume();
+    const jd = storageService.getJobDescription();
 
-          const category = classifyQuestion(params.question);
+    const category = classifyQuestion(params.question);
 
-          let formatInstruction = '';
-          switch(category) {
+    let formatInstruction = '';
+    switch (category) {
       case 'integration':
-          formatInstruction = `
+        formatInstruction = `
 LANGUAGE & FORMAT INSTRUCTION:
 This is an INTEGRATION / SETUP / HOW-TO question.
 Provide a COMPLETE, practical, step-by-step integration guide. DO NOT give a vague 2-line summary or empty config objects.
@@ -250,10 +281,10 @@ Structure your answer clearly:
 4. Step 3: Initialization & Setup (complete, valid code without empty dummy brackets).
 5. Step 4: Practical Usage Example (realistic React Native / frontend / backend component or hook code showing real methods in action).
 6. Key Interview Talking Points: 2-3 concise bullet points of best practices, caveats, or optimization tips to mention verbally.`;
-          break;
+        break;
 
-          case 'algorithm':
-          formatInstruction = `
+      case 'algorithm':
+        formatInstruction = `
 LANGUAGE & FORMAT INSTRUCTION:
 This is an ALGORITHM / CODING CHALLENGE.
 Output ONLY the simplest, beginner-friendly JavaScript code inside a single markdown code block (\`\`\`javascript ... \`\`\`).
@@ -261,10 +292,10 @@ Output ONLY the simplest, beginner-friendly JavaScript code inside a single mark
 - Use basic variables and simple loops (for, while, if/else). Avoid complex one-liners, reduce, or advanced tricks when a simple loop works.
 - End with a console.log showing the result and a comment with the answer (e.g. console.log(largest); // 67).
 - No long introductory text, multi-step tutorials, or conversational pleasantries.`;
-          break;
+        break;
 
-          case 'concept':
-          formatInstruction = `
+      case 'concept':
+        formatInstruction = `
 LANGUAGE & FORMAT INSTRUCTION:
 This is a CONCEPTUAL / DEFINITION question.
 Answer in exactly 2 to 3 very simple sentences in plain everyday English:
@@ -273,67 +304,89 @@ Answer in exactly 2 to 3 very simple sentences in plain everyday English:
 - Sentence 3: Why it helps or why we use it.
 Follow immediately with a short, simple practical code example (2 to 4 lines).
 Keep it concise, direct, and easy to speak out loud.`;
-          break;
+        break;
 
-          case 'behavioral':
-          formatInstruction = `
+      case 'behavioral':
+        formatInstruction = `
 LANGUAGE & FORMAT INSTRUCTION:
 This is an EXPERIENCE / BEHAVIORAL question.
 - Speak in the first person ("In my previous experience...", "I built...").
 - Ground the answer in the candidate's uploaded resume, skills, and projects when available.
 - Use the STAR framework (Situation, Task, Action, Result) in a natural, conversational way.`;
-          break;
+        break;
 
       default:
-    formatInstruction = `
+        formatInstruction = `
 LANGUAGE & FORMAT INSTRUCTION:
 Answer in clear, simple English that is natural and easy to explain out loud in an interview.
 Provide practical, complete explanations and realistic code examples where applicable.`;
-  break;
-}
+        break;
+    }
 
-const promptContext = [
-  '### CANDIDATE CONTEXT:',
-  resume
-    ? `RESUME DETAILS:\nName: ${resume.name || 'Candidate'}\nTechnical Skills: ${resume.skills.join(', ')}\nLanguages: ${resume.languages.join(', ')}\nFrameworks: ${resume.frameworks.join(', ')}\nWork Experience:\n${JSON.stringify(resume.experience, null, 2)}\nProjects:\n${JSON.stringify(resume.projects, null, 2)}`
-    : 'RESUME: (No resume provided yet. Answer generally but stay beginner-friendly and realistic.)',
-  '',
-  jd
-    ? `JOB DESCRIPTION CONTEXT:\nRequired Skills: ${jd.requiredSkills.join(', ')}\nResponsibilities: ${jd.responsibilities.join('; ')}\nTools: ${jd.toolsAndTech.join(', ')}`
-    : 'JOB DESCRIPTION: (None specified)',
-  '',
-  `### INTERVIEW QUESTION:`,
-  `"${params.question}"`,
-  '',
-  'Provide your response following all SYSTEM INSTRUCTIONS. Keep it direct, natural, and simple.' + formatInstruction
-].join('\n');
+    const historyContext = this.conversationHistory.length > 0
+      ? [
+        '### RECENT INTERVIEW CONVERSATION HISTORY (Use to answer follow-ups and maintain continuity with previous code/discussion):',
+        ...this.conversationHistory.map((item, idx) => {
+          return `--- PREVIOUS Q&A #${idx + 1} (${item.source || 'interview'}) ---\nQUESTION: "${item.question}"\nANSWER:\n${item.answer}\n`;
+        }),
+        '### END OF CONVERSATION HISTORY',
+        ''
+      ].join('\n')
+      : '';
 
-const result = await model.generateContent(promptContext);
-const responseText = result.response.text();
+    const promptContext = [
+      '### CANDIDATE CONTEXT:',
+      resume
+        ? `RESUME DETAILS:\nName: ${resume.name || 'Candidate'}\nTechnical Skills: ${resume.skills.join(', ')}\nLanguages: ${resume.languages.join(', ')}\nFrameworks: ${resume.frameworks.join(', ')}\nWork Experience:\n${JSON.stringify(resume.experience, null, 2)}\nProjects:\n${JSON.stringify(resume.projects, null, 2)}`
+        : 'RESUME: (No resume provided yet. Answer generally but stay beginner-friendly and realistic.)',
+      '',
+      jd
+        ? `JOB DESCRIPTION CONTEXT:\nRequired Skills: ${jd.requiredSkills.join(', ')}\nResponsibilities: ${jd.responsibilities.join('; ')}\nTools: ${jd.toolsAndTech.join(', ')}`
+        : 'JOB DESCRIPTION: (None specified)',
+      '',
+      historyContext,
+      `### CURRENT INTERVIEW QUESTION:`,
+      `"${params.question}"`,
+      '',
+      'INSTRUCTIONS FOR THIS QUESTION:',
+      '- If this question is a FOLLOW-UP referencing earlier topics or code (e.g. "that approach", "it", "optimize that", "how do you test it", "why use that library"), directly connect to and build upon the recent conversation history above.',
+      '- Provide your response following all SYSTEM INSTRUCTIONS. Keep it direct, natural, and simple.' + formatInstruction
+    ].filter(Boolean).join('\n');
 
-const { isCoding, cleanedAnswer } = this.sanitizeAnswer(params.question, responseText);
+    const result = await model.generateContent(promptContext);
+    const responseText = result.response.text();
 
-return {
-  id: 'ans-' + Date.now() + '-' + Math.random().toString(36).substr(2, 5),
-  question: params.question,
-  answer: cleanedAnswer,
-  source: params.source || 'manual',
-  timestamp: Date.now(),
-  isCodingQuestion: isCoding,
-};
+    const { isCoding, cleanedAnswer } = this.sanitizeAnswer(params.question, responseText);
+
+    // Save turn to conversation history for future follow-up questions
+    this.addToHistory({
+      question: params.question,
+      answer: cleanedAnswer,
+      timestamp: Date.now(),
+      source: params.source || 'manual',
+    });
+
+    return {
+      id: 'ans-' + Date.now() + '-' + Math.random().toString(36).substr(2, 5),
+      question: params.question,
+      answer: cleanedAnswer,
+      source: params.source || 'manual',
+      timestamp: Date.now(),
+      isCodingQuestion: isCoding,
+    };
   }
 
   /**
    * Analyze extracted resume text to extract structured information.
    */
-  async analyzeResumeText(rawText: string): Promise < Partial < ResumeData >> {
-  const ai = this.getClient();
-  const model = ai.getGenerativeModel({
-    model: this.getModelName(),
-    generationConfig: { responseMimeType: 'application/json' },
-  });
+  async analyzeResumeText(rawText: string): Promise<Partial<ResumeData>> {
+    const ai = this.getClient();
+    const model = ai.getGenerativeModel({
+      model: this.getModelName(),
+      generationConfig: { responseMimeType: 'application/json' },
+    });
 
-  const prompt = `You are a resume analysis expert.
+    const prompt = `You are a resume analysis expert.
 Extract all key details from the candidate resume text below.
 DO NOT invent or assume skills, projects, or experience that are not explicitly present in the text.
 
@@ -372,30 +425,30 @@ Return valid JSON with exactly this structure:
   ]
 }`;
 
-  const result = await model.generateContent(prompt);
-  const jsonStr = result.response.text();
-  const parsed = JSON.parse(jsonStr);
-  return parsed;
-}
+    const result = await model.generateContent(prompt);
+    const jsonStr = result.response.text();
+    const parsed = JSON.parse(jsonStr);
+    return parsed;
+  }
 
   /**
    * Analyze a job description and compare with candidate resume.
    */
   async analyzeJobDescriptionText(
-  jdText: string,
-  resume: ResumeData | null
-): Promise < JobDescriptionData > {
-  const ai = this.getClient();
-  const model = ai.getGenerativeModel({
-    model: this.getModelName(),
-    generationConfig: { responseMimeType: 'application/json' },
-  });
+    jdText: string,
+    resume: ResumeData | null
+  ): Promise<JobDescriptionData> {
+    const ai = this.getClient();
+    const model = ai.getGenerativeModel({
+      model: this.getModelName(),
+      generationConfig: { responseMimeType: 'application/json' },
+    });
 
-  const resumeSummary = resume
-    ? `Candidate Skills: ${[...resume.skills, ...resume.languages, ...resume.frameworks].join(', ')}\nExperience Summary: ${resume.experience.map(e => e.role + ' at ' + e.company).join(', ')}`
-    : 'No candidate resume available.';
+    const resumeSummary = resume
+      ? `Candidate Skills: ${[...resume.skills, ...resume.languages, ...resume.frameworks].join(', ')}\nExperience Summary: ${resume.experience.map(e => e.role + ' at ' + e.company).join(', ')}`
+      : 'No candidate resume available.';
 
-  const prompt = `You are an expert technical recruiter and interview coach.
+    const prompt = `You are an expert technical recruiter and interview coach.
 Analyze the following job description and compare it against the candidate resume.
 
 JOB DESCRIPTION:
@@ -420,35 +473,35 @@ Return valid JSON with exactly this structure:
   "missingSkills": ["Required or preferred JD skills not mentioned in the Candidate Resume"]
 }`;
 
-  const result = await model.generateContent(prompt);
-  const jsonStr = result.response.text();
-  const parsed = JSON.parse(jsonStr);
+    const result = await model.generateContent(prompt);
+    const jsonStr = result.response.text();
+    const parsed = JSON.parse(jsonStr);
 
-  return {
-    rawText: jdText,
-    requiredSkills: parsed.requiredSkills || [],
-    preferredSkills: parsed.preferredSkills || [],
-    responsibilities: parsed.responsibilities || [],
-    requiredExperience: parsed.requiredExperience || '',
-    toolsAndTech: parsed.toolsAndTech || [],
-    keywords: parsed.keywords || [],
-    matchingSkills: parsed.matchingSkills || [],
-    missingSkills: parsed.missingSkills || [],
-    analyzedAt: new Date().toISOString(),
-  };
-}
+    return {
+      rawText: jdText,
+      requiredSkills: parsed.requiredSkills || [],
+      preferredSkills: parsed.preferredSkills || [],
+      responsibilities: parsed.responsibilities || [],
+      requiredExperience: parsed.requiredExperience || '',
+      toolsAndTech: parsed.toolsAndTech || [],
+      keywords: parsed.keywords || [],
+      matchingSkills: parsed.matchingSkills || [],
+      missingSkills: parsed.missingSkills || [],
+      analyzedAt: new Date().toISOString(),
+    };
+  }
 
   /**
    * Analyze a screen image/capture for coding questions or interview problems.
    */
-  async analyzeScreenImage(base64Image: string, mimeType: string = 'image/png'): Promise < AnswerResponse > {
-  const ai = this.getClient();
-  const model = ai.getGenerativeModel({
-    model: this.getModelName(),
-    systemInstruction: SYSTEM_INSTRUCTION,
-  });
+  async analyzeScreenImage(base64Image: string, mimeType: string = 'image/png'): Promise<AnswerResponse> {
+    const ai = this.getClient();
+    const model = ai.getGenerativeModel({
+      model: this.getModelName(),
+      systemInstruction: SYSTEM_INSTRUCTION,
+    });
 
-  const prompt = `Analyze this screen capture from an interview or technical session.
+    const prompt = `Analyze this screen capture from an interview or technical session.
 1. Check if there is a coding challenge, algorithm problem, programming question, or technical test on screen.
 2. If there IS a coding problem or question:
    - Identify the exact problem statement.
@@ -463,42 +516,50 @@ Return valid JSON with exactly this structure:
    - Clearly summarize what is on the screen instead of inventing a question.
 Keep the answer natural, practical, and interview-ready.`;
 
-  const result = await model.generateContent([
-    prompt,
-    {
-      inlineData: {
-        data: base64Image,
-        mimeType: mimeType,
+    const result = await model.generateContent([
+      prompt,
+      {
+        inlineData: {
+          data: base64Image,
+          mimeType: mimeType,
+        },
       },
-    },
-  ]);
+    ]);
 
-  const responseText = result.response.text();
-  const { isCoding, cleanedAnswer } = this.sanitizeAnswer('Screen Analysis / Code Problem', responseText);
+    const responseText = result.response.text();
+    const { isCoding, cleanedAnswer } = this.sanitizeAnswer('Screen Analysis / Code Problem', responseText);
 
-  return {
-    id: 'screen-' + Date.now() + '-' + Math.random().toString(36).substr(2, 5),
-    question: 'Screen Analysis / Code Problem',
-    answer: cleanedAnswer,
-    source: 'screen',
-    timestamp: Date.now(),
-    isCodingQuestion: isCoding,
-  };
-}
+    // Save screen problem & solution to conversation history so candidates can ask follow-ups
+    this.addToHistory({
+      question: 'Screen Technical Problem / Code Solution',
+      answer: cleanedAnswer,
+      timestamp: Date.now(),
+      source: 'screen',
+    });
+
+    return {
+      id: 'screen-' + Date.now() + '-' + Math.random().toString(36).substr(2, 5),
+      question: 'Screen Analysis / Code Problem',
+      answer: cleanedAnswer,
+      source: 'screen',
+      timestamp: Date.now(),
+      isCodingQuestion: isCoding,
+    };
+  }
 
   /**
    * Process meeting audio chunk: transcribe and detect interview questions.
    */
   async processAudioChunk(
-  base64Audio: string,
-  mimeType: string
-): Promise < { detectedQuestion?: string; answer?: AnswerResponse } > {
-  const ai = this.getClient();
-  const model = ai.getGenerativeModel({
-    model: this.getModelName(),
-  });
+    base64Audio: string,
+    mimeType: string
+  ): Promise<{ detectedQuestion?: string; answer?: AnswerResponse }> {
+    const ai = this.getClient();
+    const model = ai.getGenerativeModel({
+      model: this.getModelName(),
+    });
 
-  const prompt = `You are monitoring meeting audio for an interview candidate.
+    const prompt = `You are monitoring meeting audio for an interview candidate.
 Analyze the audio in this recording.
 Task 1: Transcribe the speech accurately.
 Task 2: Determine if an interviewer is asking an interview question, technical question, behavioural question, or prompt directed at the candidate.
@@ -512,40 +573,40 @@ Return JSON in this exact structure:
   "detectedQuestion": "The clean question if isQuestion is true, otherwise empty string"
 }`;
 
-  const result = await model.generateContent([
-    prompt,
-    {
-      inlineData: {
-        data: base64Audio,
-        mimeType: mimeType || 'audio/webm',
+    const result = await model.generateContent([
+      prompt,
+      {
+        inlineData: {
+          data: base64Audio,
+          mimeType: mimeType || 'audio/webm',
+        },
       },
-    },
-  ]);
+    ]);
 
-  let parsed: { transcription?: string; isQuestion?: boolean; detectedQuestion?: string } = {};
-  try {
-    const text = result.response.text().trim();
-    // Remove any markdown code fence if wrapped
-    const cleaned = text.replace(/^```json\n?/, '').replace(/\n?```$/, '');
-    parsed = JSON.parse(cleaned);
-  } catch {
-    return {};
-  }
+    let parsed: { transcription?: string; isQuestion?: boolean; detectedQuestion?: string } = {};
+    try {
+      const text = result.response.text().trim();
+      // Remove any markdown code fence if wrapped
+      const cleaned = text.replace(/^```json\n?/, '').replace(/\n?```$/, '');
+      parsed = JSON.parse(cleaned);
+    } catch {
+      return {};
+    }
 
-    if(parsed.isQuestion && parsed.detectedQuestion && parsed.detectedQuestion.length > 5) {
-  const answer = await this.generateInterviewAnswer({
-    question: parsed.detectedQuestion,
-    source: 'audio',
-  });
-  return {
-    detectedQuestion: parsed.detectedQuestion,
-    answer,
-  };
-}
+    if (parsed.isQuestion && parsed.detectedQuestion && parsed.detectedQuestion.length > 5) {
+      const answer = await this.generateInterviewAnswer({
+        question: parsed.detectedQuestion,
+        source: 'audio',
+      });
+      return {
+        detectedQuestion: parsed.detectedQuestion,
+        answer,
+      };
+    }
 
-return {
-  detectedQuestion: parsed.transcription ? `(Transcribed: "${parsed.transcription}")` : undefined,
-};
+    return {
+      detectedQuestion: parsed.transcription ? `(Transcribed: "${parsed.transcription}")` : undefined,
+    };
   }
 
   /**
@@ -553,50 +614,50 @@ return {
    * If yes, generates a live personalized answer.
    */
   async evaluateTranscribedQuestion(
-  transcript: string
-): Promise < { detectedQuestion?: string; answer?: AnswerResponse } > {
-  const trimmed = (transcript || '').trim();
-  // Ignore empty or extremely short inputs
-  if(!trimmed || trimmed.length < 10) {
-  return {};
-}
+    transcript: string
+  ): Promise<{ detectedQuestion?: string; answer?: AnswerResponse }> {
+    const trimmed = (transcript || '').trim();
+    // Ignore empty or extremely short inputs
+    if (!trimmed || trimmed.length < 10) {
+      return {};
+    }
 
-// Filter common filler and acknowledgments to avoid wasting Gemini tokens
-const lower = trimmed.toLowerCase().replace(/[^a-z0-9 ]/g, '').trim();
-const commonFiller = [
-  'yes', 'no', 'yeah', 'yep', 'nope', 'okay', 'ok', 'sure', 'alright',
-  'hello', 'hi', 'hey', 'good morning', 'good afternoon', 'good evening',
-  'thank you', 'thanks', 'cool', 'got it', 'i see', 'right', 'fine',
-  'um', 'uh', 'hmm', 'can you hear me', 'am i audible', 'testing'
-];
+    // Filter common filler and acknowledgments to avoid wasting Gemini tokens
+    const lower = trimmed.toLowerCase().replace(/[^a-z0-9 ]/g, '').trim();
+    const commonFiller = [
+      'yes', 'no', 'yeah', 'yep', 'nope', 'okay', 'ok', 'sure', 'alright',
+      'hello', 'hi', 'hey', 'good morning', 'good afternoon', 'good evening',
+      'thank you', 'thanks', 'cool', 'got it', 'i see', 'right', 'fine',
+      'um', 'uh', 'hmm', 'can you hear me', 'am i audible', 'testing'
+    ];
 
-if (commonFiller.includes(lower)) {
-  return {
-    detectedQuestion: `(Transcription: "${trimmed}")`,
-  };
-}
+    if (commonFiller.includes(lower)) {
+      return {
+        detectedQuestion: `(Transcription: "${trimmed}")`,
+      };
+    }
 
-const words = lower.split(/\s+/);
-const questionStarters = [
-  'what', 'why', 'how', 'explain', 'describe', 'tell', 'who', 'when',
-  'where', 'can', 'could', 'would', 'is', 'are', 'do', 'does', 'write',
-  'implement', 'walk', 'difference'
-];
-const hasQuestionIndicator = trimmed.includes('?') || questionStarters.some(w => lower.includes(w));
+    const words = lower.split(/\s+/);
+    const questionStarters = [
+      'what', 'why', 'how', 'explain', 'describe', 'tell', 'who', 'when',
+      'where', 'can', 'could', 'would', 'is', 'are', 'do', 'does', 'write',
+      'implement', 'walk', 'difference'
+    ];
+    const hasQuestionIndicator = trimmed.includes('?') || questionStarters.some(w => lower.includes(w));
 
-// If it's very short and contains no question indicators, it's casual chatter - don't waste tokens
-if (words.length < 4 && !hasQuestionIndicator) {
-  return {
-    detectedQuestion: `(Transcription: "${trimmed}")`,
-  };
-}
+    // If it's very short and contains no question indicators, it's casual chatter - don't waste tokens
+    if (words.length < 4 && !hasQuestionIndicator) {
+      return {
+        detectedQuestion: `(Transcription: "${trimmed}")`,
+      };
+    }
 
-const ai = this.getClient();
-const model = ai.getGenerativeModel({
-  model: this.getModelName(),
-});
+    const ai = this.getClient();
+    const model = ai.getGenerativeModel({
+      model: this.getModelName(),
+    });
 
-const prompt = `You are an AI assistant for a candidate during a live job interview or technical meeting.
+    const prompt = `You are an AI assistant for a candidate during a live job interview or technical meeting.
 Here is speech transcribed from the meeting:
 "${transcript}"
 
@@ -610,31 +671,31 @@ Return JSON in this exact structure:
   "detectedQuestion": "The clean question if isQuestion is true, otherwise empty string"
 }`;
 
-try {
-  const result = await model.generateContent(prompt);
-  const text = result.response.text().trim();
-  const cleaned = text.replace(/^```json\n?/, '').replace(/\n?```$/, '');
-  const parsed = JSON.parse(cleaned);
+    try {
+      const result = await model.generateContent(prompt);
+      const text = result.response.text().trim();
+      const cleaned = text.replace(/^```json\n?/, '').replace(/\n?```$/, '');
+      const parsed = JSON.parse(cleaned);
 
-  if (parsed.isQuestion && parsed.detectedQuestion && parsed.detectedQuestion.length > 5) {
-    const answer = await this.generateInterviewAnswer({
-      question: parsed.detectedQuestion,
-      source: 'audio',
-    });
-    return {
-      detectedQuestion: parsed.detectedQuestion,
-      answer,
-    };
-  }
+      if (parsed.isQuestion && parsed.detectedQuestion && parsed.detectedQuestion.length > 5) {
+        const answer = await this.generateInterviewAnswer({
+          question: parsed.detectedQuestion,
+          source: 'audio',
+        });
+        return {
+          detectedQuestion: parsed.detectedQuestion,
+          answer,
+        };
+      }
 
-  return {
-    detectedQuestion: `(Deepgram: "${transcript}")`,
-  };
-} catch {
-  return {
-    detectedQuestion: `(Deepgram: "${transcript}")`,
-  };
-}
+      return {
+        detectedQuestion: `(Deepgram: "${transcript}")`,
+      };
+    } catch {
+      return {
+        detectedQuestion: `(Deepgram: "${transcript}")`,
+      };
+    }
   }
 }
 

@@ -23,6 +23,9 @@ const api = {
   generateAnswer: (params: { question: string }): Promise<IPCResult<AnswerResponse>> =>
     ipcRenderer.invoke('ai:generate-answer', params),
 
+  clearConversationHistory: (): Promise<IPCResult<void>> =>
+    ipcRenderer.invoke('ai:clear-history'),
+
   analyzeJobDescription: (jdText: string): Promise<IPCResult<JobDescriptionData>> =>
     ipcRenderer.invoke('ai:analyze-jd', jdText),
 
@@ -54,9 +57,10 @@ const api = {
   // Audio APIs
   processAudioChunk: (
     audioBase64: string,
-    mimeType: string
-  ): Promise<IPCResult<{ detectedQuestion?: string; answer?: AnswerResponse }>> =>
-    ipcRenderer.invoke('audio:process-chunk', audioBase64, mimeType),
+    mimeType: string,
+    isFinal?: boolean
+  ): Promise<IPCResult<{ detectedQuestion?: string; answer?: AnswerResponse; isFinal?: boolean }>> =>
+  ipcRenderer.invoke('audio:process-chunk', audioBase64, mimeType, isFinal),
 
   resetAudioBuffer: (): Promise<IPCResult<void>> =>
     ipcRenderer.invoke('audio:reset'),
@@ -169,6 +173,14 @@ const api = {
     ipcRenderer.on('app:screen-error', handler);
     return () => {
       ipcRenderer.removeListener('app:screen-error', handler);
+    };
+  },
+
+  onSpeechQuestionDetected: (callback: (question: string) => void) => {
+    const handler = (_event: any, question: string) => callback(question);
+    ipcRenderer.on('app:speech-question-detected', handler);
+    return () => {
+      ipcRenderer.removeListener('app:speech-question-detected', handler);
     };
   },
 };

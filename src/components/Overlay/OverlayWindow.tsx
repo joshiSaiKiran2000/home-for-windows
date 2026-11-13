@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect, useRef, useCallback } from "react";
 import {
   Minus,
   X,
@@ -40,8 +40,90 @@ export const OverlayWindow: React.FC = () => {
   );
 
   const opacityRef = useRef<HTMLDivElement>(null);
+  const titlebarRef = useRef<HTMLDivElement>(null);
+  const footerRef = useRef<HTMLDivElement>(null);
+  const contentInnerRef = useRef<HTMLDivElement>(null);
+  const lastAdjustedHeightRef = useRef<number>(0);
+  const userManualOverrideRef = useRef<boolean>(false);
 
-  const { audioState, startListening, stopListening } = useAudioCapture();
+  // When speech is transcribed from interviewer: populate question directly into the input box
+  const handleSpokenQuestionDetected = useCallback((detectedText: string) => {
+    if (!detectedText || !detectedText.trim()) return;
+    const clean = detectedText.trim();
+    if (clean.startsWith("(Deepgram error") || clean.startsWith("(Error")) return;
+    const formatted = clean.replace(/^\(Listening:\s*"(.*)"\.\.\.\)$/, "$1").trim();
+    if (formatted) {
+      setQuickQuestion(formatted);
+    }
+  }, []);
+
+  const { audioState, startListening, stopListening } = useAudioCapture(handleSpokenQuestionDetected);
+
+  // Smart dynamic auto-sizing: calculates perfect window height to fit question, answers & code
+  const performAutoResize = () => {
+    if (isMinimized || userManualOverrideRef.current) return;
+    const innerEl = contentInnerRef.current;
+
+    const titlebarH = titlebarRef.current?.offsetHeight || 42;
+    const footerH = footerRef.current?.offsetHeight || 56;
+    const innerH = innerEl ? innerEl.offsetHeight : 0;
+
+    // Has inner content (either activeAnswer, loading spinner, listening, or upload message)
+    const hasContent = innerH > 5;
+    const paddingH = hasContent ? 28 : 12;
+    const borders = 2;
+
+    const totalHeight = titlebarH + innerH + paddingH + footerH + borders;
+    // Primary display work area height limit (leave safety margin so overlay never touches or exceeds screen boundaries)
+    const screenAvail = window.screen.availHeight || 800;
+    const maxH = Math.min(screenAvail - 70, 720);
+    const minH = hasContent ? 210 : 175;
+
+    const clampedH = Math.max(minH, Math.min(maxH, Math.round(totalHeight)));
+    const currentW = window.innerWidth > 300 ? window.innerWidth : 460;
+
+    if (Math.abs(lastAdjustedHeightRef.current - clampedH) >= 4) {
+      lastAdjustedHeightRef.current = clampedH;
+      window.electronAPI?.setOverlaySize(currentW, clampedH);
+    }
+  };
+
+  // ResizeObserver to detect any height changes in answer text, markdown, or code blocks immediately
+  useEffect(() => {
+    if (isMinimized) return;
+    const innerEl = contentInnerRef.current;
+    if (!innerEl) {
+      performAutoResize();
+      return;
+    }
+
+    let resizeTimer: any = null;
+
+    const observer = new ResizeObserver(() => {
+      if (userManualOverrideRef.current || isMinimized) return;
+      if (resizeTimer) clearTimeout(resizeTimer);
+      resizeTimer = setTimeout(() => {
+        performAutoResize();
+      }, 35);
+    });
+
+    observer.observe(innerEl);
+
+    // Initial check
+    performAutoResize();
+
+    return () => {
+      observer.disconnect();
+      if (resizeTimer) clearTimeout(resizeTimer);
+    };
+  }, [
+    isMinimized,
+    currentIndex,
+    answers.length,
+    isLoading,
+    audioState.isListening,
+    uploadMessage,
+  ]);
 
   // Close opacity popover on click outside
   useEffect(() => {
@@ -72,6 +154,8 @@ export const OverlayWindow: React.FC = () => {
     });
 
     const cleanup = window.electronAPI.onNewAnswer((newAns) => {
+      userManualOverrideRef.current = false;
+      lastAdjustedHeightRef.current = 0;
       setAnswers((prev) => [newAns, ...prev]);
       setCurrentIndex(0);
       setIsLoading(false);
@@ -94,6 +178,8 @@ export const OverlayWindow: React.FC = () => {
     );
 
     const cleanupAnalyzing = window.electronAPI.onScreenAnalyzing?.(() => {
+      userManualOverrideRef.current = false;
+      lastAdjustedHeightRef.current = 0;
       setIsLoading(true);
     });
 
@@ -103,8 +189,11 @@ export const OverlayWindow: React.FC = () => {
       setTimeout(() => setUploadMessage(null), 4000);
     });
 
+    const cleanupSpeech = window.electronAPI?.onSpeechQuestionDetected?.((q) => {
+      handleSpokenQuestionDetected(q);
+    });
+
     window.electronAPI?.resetZoom?.();
-    window.electronAPI?.resetOverlaySize?.();
 
     window.electronAPI?.getSettings?.().then((res) => {
       if (res?.success && res.data?.sttProvider) {
@@ -119,6 +208,7 @@ export const OverlayWindow: React.FC = () => {
       cleanupOpacity?.();
       cleanupAnalyzing?.();
       cleanupScreenError?.();
+      cleanupSpeech?.();
     };
   }, []);
 
@@ -243,18 +333,21 @@ export const OverlayWindow: React.FC = () => {
           return;
         }
 
-        // Reset to default dimensions (460 x 470) and 100% zoom on Ctrl + 0 or Ctrl + Shift + 0 or Alt + 0
+        // Reset to auto-fit dimensions and 100% zoom on Ctrl + 0 or Ctrl + Shift + 0 or Alt + 0
         if ((e.ctrlKey || e.altKey) && isZero) {
           e.preventDefault();
           e.stopPropagation();
+          userManualOverrideRef.current = false;
+          lastAdjustedHeightRef.current = 0;
           window.electronAPI?.resetZoom?.();
-          window.electronAPI?.resetOverlaySize?.();
+          performAutoResize();
           return;
         }
 
         // 1. Resize Overlay Shortcuts:
         // Ctrl + Shift + Arrows (works everywhere, including inside input with preventDefault)
         if (e.ctrlKey && e.shiftKey) {
+          userManualOverrideRef.current = true;
           if (isArrowRight) {
             e.preventDefault();
             window.electronAPI?.resizeOverlayBy(30, 0); // Widen
@@ -271,6 +364,7 @@ export const OverlayWindow: React.FC = () => {
         }
         // 3. Ctrl + Arrows (when not focused in text input)
         else if (e.ctrlKey && !isInputFocused) {
+          userManualOverrideRef.current = true;
           if (isArrowRight) {
             e.preventDefault();
             window.electronAPI?.resizeOverlayBy(30, 0); // Widen
@@ -298,15 +392,20 @@ export const OverlayWindow: React.FC = () => {
   const activeAnswer = answers[currentIndex] || null;
 
   const handleClearText = () => {
+    userManualOverrideRef.current = false;
+    lastAdjustedHeightRef.current = 0;
     setAnswers([]);
     setCurrentIndex(0);
     setQuickQuestion("");
     setUploadMessage(null);
+    window.electronAPI?.clearConversationHistory?.();
   };
 
   const handleRegenerate = async () => {
     if (!activeAnswer || isLoading || !window.electronAPI) return;
     setIsLoading(true);
+    userManualOverrideRef.current = false;
+    lastAdjustedHeightRef.current = 0;
     try {
       const res = await window.electronAPI.generateAnswer({
         question: activeAnswer.question,
@@ -328,6 +427,8 @@ export const OverlayWindow: React.FC = () => {
     const q = quickQuestion.trim();
     setQuickQuestion("");
     setIsLoading(true);
+    userManualOverrideRef.current = false;
+    lastAdjustedHeightRef.current = 0;
     try {
       const res = await window.electronAPI.generateAnswer({ question: q });
       if (res.success && res.data) {
@@ -353,6 +454,8 @@ export const OverlayWindow: React.FC = () => {
   };
 
   const handleExpand = () => {
+    userManualOverrideRef.current = false;
+    lastAdjustedHeightRef.current = 0;
     setIsMinimized(false);
     window.electronAPI?.setOverlayMinimized(false);
   };
@@ -417,6 +520,7 @@ export const OverlayWindow: React.FC = () => {
 
   const handleResizePointerDown = (e: React.PointerEvent<HTMLDivElement>) => {
     if (e.button !== 0) return;
+    userManualOverrideRef.current = true;
     isResizingRef.current = true;
     resizeStartPosRef.current = { screenX: e.screenX, screenY: e.screenY };
     try {
@@ -450,6 +554,8 @@ export const OverlayWindow: React.FC = () => {
   const handleScreenCapture = async (sourceId?: string) => {
     if (!window.electronAPI) return;
     setIsLoading(true);
+    userManualOverrideRef.current = false;
+    lastAdjustedHeightRef.current = 0;
     try {
       const res = await window.electronAPI.captureAndAnalyzeScreen(sourceId);
       if (res.success && res.data) {
@@ -550,6 +656,7 @@ export const OverlayWindow: React.FC = () => {
     >
       {/* Draggable Titlebar */}
       <div
+        ref={titlebarRef}
         style={{
           backgroundColor: `rgba(22, 27, 34, ${Math.min(1, Math.max(0.25, opacity + 0.1))})`,
           borderBottomColor: `rgba(48, 54, 61, ${Math.min(1, Math.max(0.2, opacity + 0.15))})`,
@@ -690,88 +797,91 @@ export const OverlayWindow: React.FC = () => {
       </div>
 
       {/* Main Content Area */}
-      <div className="flex-1 overflow-y-auto p-3.5 space-y-3 select-text">
-        {uploadMessage && (
-          <div className="p-2.5 rounded-xl bg-brand-950/50 border border-brand-800/60 text-xs text-brand-300 flex items-center gap-2">
-            <Check className="w-3.5 h-3.5 text-emerald-400" />
-            <span>{uploadMessage}</span>
-          </div>
-        )}
-
-        {audioState.isListening && (
-          <div className="p-2 rounded-xl bg-rose-950/30 border border-rose-800/40 text-xs text-rose-300 flex items-center justify-between">
-            <div className="flex items-center gap-2">
-              <span className="w-2 h-2 rounded-full bg-rose-400 animate-ping" />
-              <span>Listening to meeting audio for questions...</span>
+      <div className="flex-1 overflow-y-auto p-3.5 select-text">
+        <div ref={contentInnerRef} className="space-y-3">
+          {uploadMessage && (
+            <div className="p-2.5 rounded-xl bg-brand-950/50 border border-brand-800/60 text-xs text-brand-300 flex items-center gap-2">
+              <Check className="w-3.5 h-3.5 text-emerald-400" />
+              <span>{uploadMessage}</span>
             </div>
-            <span className="text-[10px] font-medium px-1.5 py-0.5 rounded bg-dark-800/90 text-dark-200 border border-dark-700">
-              {sttProvider === "deepgram"
-                ? "⚡ Deepgram Nova-2"
-                : "✨ Gemini Audio"}
-            </span>
-          </div>
-        )}
-        {isLoading && (
-          <div className="p-3 rounded-xl bg-brand-950/30 border border-brand-800/40 flex items-center gap-2.5 text-xs text-brand-300">
-            <div className="w-4 h-4 border-2 border-brand-400 border-t-transparent rounded-full animate-spin shrink-0" />
-            <span>Formulating conversational, beginner-friendly answer...</span>
-          </div>
-        )}
+          )}
 
-        {activeAnswer && (
-          <div className="space-y-2.5">
-            {/* Question Bar */}
-            <div
-              style={{
-                backgroundColor: `rgba(22, 27, 34, ${Math.min(1, Math.max(0.3, opacity + 0.08))})`,
-                borderColor: `rgba(48, 54, 61, ${Math.min(1, Math.max(0.25, opacity + 0.15))})`,
-              }}
-              className="flex items-start justify-between gap-2 p-2.5 rounded-xl border"
-            >
-              <div className="space-y-0.5">
-                <span className="text-[10px] font-semibold uppercase tracking-wider text-brand-400">
-                  {activeAnswer.source === "screen"
-                    ? "Screen Question"
-                    : activeAnswer.source === "audio"
-                      ? "Spoken Question"
-                      : "Prompt"}
-                </span>
-                <p className="text-xs font-semibold text-white leading-snug">
-                  {activeAnswer.question}
-                </p>
+          {audioState.isListening && (
+            <div className="p-2 rounded-xl bg-rose-950/30 border border-rose-800/40 text-xs text-rose-300 flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <span className="w-2 h-2 rounded-full bg-rose-400 animate-ping" />
+                <span>Listening to meeting audio for questions...</span>
+              </div>
+              <span className="text-[10px] font-medium px-1.5 py-0.5 rounded bg-dark-800/90 text-dark-200 border border-dark-700">
+                {sttProvider === "deepgram"
+                  ? "⚡ Deepgram Nova-2"
+                  : "✨ Gemini Audio"}
+              </span>
+            </div>
+          )}
+          {isLoading && (
+            <div className="p-3 rounded-xl bg-brand-950/30 border border-brand-800/40 flex items-center gap-2.5 text-xs text-brand-300">
+              <div className="w-4 h-4 border-2 border-brand-400 border-t-transparent rounded-full animate-spin shrink-0" />
+              <span>Formulating conversational, beginner-friendly answer...</span>
+            </div>
+          )}
+
+          {activeAnswer && (
+            <div className="space-y-2.5">
+              {/* Question Bar */}
+              <div
+                style={{
+                  backgroundColor: `rgba(22, 27, 34, ${Math.min(1, Math.max(0.3, opacity + 0.08))})`,
+                  borderColor: `rgba(48, 54, 61, ${Math.min(1, Math.max(0.25, opacity + 0.15))})`,
+                }}
+                className="flex items-start justify-between gap-2 p-2.5 rounded-xl border"
+              >
+                <div className="space-y-0.5">
+                  <span className="text-[10px] font-semibold uppercase tracking-wider text-brand-400">
+                    {activeAnswer.source === "screen"
+                      ? "Screen Question"
+                      : activeAnswer.source === "audio"
+                        ? "Spoken Question"
+                        : "Prompt"}
+                  </span>
+                  <p className="text-xs font-semibold text-white leading-snug">
+                    {activeAnswer.question}
+                  </p>
+                </div>
+
+                {/* Actions */}
+                <div className="no-drag flex items-center gap-1 shrink-0">
+                  <button
+                    onClick={handleRegenerate}
+                    disabled={isLoading}
+                    className="p-1.5 rounded-lg text-dark-400 hover:text-white hover:bg-dark-700 transition-colors"
+                  >
+                    <RotateCw
+                      className={`w-3.5 h-3.5 ${isLoading ? "animate-spin" : ""}`}
+                    />
+                  </button>
+                  <button
+                    onClick={handleClearText}
+                    className="flex items-center gap-1 px-2 py-1 rounded-lg text-[11px] font-medium bg-dark-700 hover:bg-rose-950/50 hover:text-rose-300 text-dark-300 transition-colors"
+                  >
+                    <Trash2 className="w-3 h-3 text-dark-400" />
+                    <span>Clear</span>
+                  </button>
+                </div>
               </div>
 
-              {/* Actions */}
-              <div className="no-drag flex items-center gap-1 shrink-0">
-                <button
-                  onClick={handleRegenerate}
-                  disabled={isLoading}
-                  className="p-1.5 rounded-lg text-dark-400 hover:text-white hover:bg-dark-700 transition-colors"
-                >
-                  <RotateCw
-                    className={`w-3.5 h-3.5 ${isLoading ? "animate-spin" : ""}`}
-                  />
-                </button>
-                <button
-                  onClick={handleClearText}
-                  className="flex items-center gap-1 px-2 py-1 rounded-lg text-[11px] font-medium bg-dark-700 hover:bg-rose-950/50 hover:text-rose-300 text-dark-300 transition-colors"
-                >
-                  <Trash2 className="w-3 h-3 text-dark-400" />
-                  <span>Clear</span>
-                </button>
+              {/* Answer Body */}
+              <div className="text-xs text-dark-100 font-medium leading-relaxed font-sans pr-1">
+                {renderFormattedAnswer(activeAnswer.answer)}
               </div>
             </div>
-
-            {/* Answer Body */}
-            <div className="text-xs text-dark-100 font-medium leading-relaxed font-sans pr-1">
-              {renderFormattedAnswer(activeAnswer.answer)}
-            </div>
-          </div>
-        )}
+          )}
+        </div>
       </div>
 
       {/* Footer Navigation & Quick Input */}
       <div
+        ref={footerRef}
         style={{
           backgroundColor: `rgba(22, 27, 34, ${Math.min(1, Math.max(0.25, opacity + 0.1))})`,
           borderTopColor: `rgba(48, 54, 61, ${Math.min(1, Math.max(0.2, opacity + 0.15))})`,
@@ -781,11 +891,13 @@ export const OverlayWindow: React.FC = () => {
         {answers.length > 1 && (
           <div className="flex items-center justify-between text-[11px] text-dark-400 px-1">
             <button
-              onClick={() =>
+              onClick={() => {
+                userManualOverrideRef.current = false;
+                lastAdjustedHeightRef.current = 0;
                 setCurrentIndex((prev) =>
                   Math.min(prev + 1, answers.length - 1),
-                )
-              }
+                );
+              }}
               disabled={currentIndex >= answers.length - 1}
               className="flex items-center gap-1 hover:text-white disabled:opacity-30 transition-colors"
             >
@@ -796,7 +908,11 @@ export const OverlayWindow: React.FC = () => {
               {currentIndex + 1} of {answers.length}
             </span>
             <button
-              onClick={() => setCurrentIndex((prev) => Math.max(prev - 1, 0))}
+              onClick={() => {
+                userManualOverrideRef.current = false;
+                lastAdjustedHeightRef.current = 0;
+                setCurrentIndex((prev) => Math.max(prev - 1, 0));
+              }}
               disabled={currentIndex <= 0}
               className="flex items-center gap-1 hover:text-white disabled:opacity-30 transition-colors"
             >
